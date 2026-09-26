@@ -181,20 +181,20 @@ export const UserKycTab: React.FC<UserKycTabProps> = ({ currentUser, onNotify })
 
             <p className="text-xs text-white/70 mt-1">
               {currentUser.kycStatus === 'Approved'
-                ? `Account certified on ${currentUser.kycSubmittedDate || '2026-09-09'} under UK FCA Client Money & AML Rules. Max leverage: 1:${currentUser.leverage}.`
+                ? `Identity verified${currentUser.kycSubmittedDate ? ` (submitted ${currentUser.kycSubmittedDate})` : ''}. Max leverage: 1:${currentUser.leverage}.`
                 : currentUser.kycStatus === 'Action Required'
                 ? `Compliance Note: ${currentUser.kycNotes || 'Please upload an updated proof of residence dated within 90 days.'}`
                 : currentUser.kycStatus === 'Pending' || currentUser.kycStatus === 'Under Review'
-                ? 'Your submitted identity artifacts are queued in our compliance desk. Review turnaround is typically within 15 minutes.'
-                : 'Complete regulatory identity verification to unlock live market trading and high-volume deposits.'}
+                ? 'Your submitted identity artifacts are queued in our compliance desk. Review is typically completed within one business day.'
+                : 'Complete identity verification to unlock live market trading and high-volume deposits.'}
             </p>
           </div>
         </div>
 
         {currentUser.kycStatus === 'Approved' && (
           <div className="text-right">
-            <span className="text-[10px] font-mono text-[#6dff8a] block">CERTIFICATE ID</span>
-            <span className="font-mono font-bold text-xs text-white">TS-FCA-2026-89104</span>
+            <span className="text-[10px] font-mono text-[#6dff8a] block">CLIENT ID</span>
+            <span className="font-mono font-bold text-xs text-white">{currentUser.id}</span>
           </div>
         )}
       </div>

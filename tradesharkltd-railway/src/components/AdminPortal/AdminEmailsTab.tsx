@@ -48,8 +48,8 @@ const EMAIL_TEMPLATES = [
     name: 'Deposit Clearance & Margin Available',
     category: 'FUNDING' as const,
     priority: 'Normal' as const,
-    subject: 'Deposit Clearance Notice: Funds Credited to Segregated Account',
-    body: `Dear {USER_NAME},\n\nWe confirm that your incoming deposit of {AMOUNT} USD has cleared custodian settlement and has been credited directly to your live trading account.\n\nAll client balances are held in segregated Tier-1 custodial bank accounts under client money protection regulations.\n\nHappy trading,\n{BRAND} Treasury Operations`
+    subject: 'Deposit Clearance Notice: Funds Credited to Your Account',
+    body: `Dear {USER_NAME},\n\nWe confirm that your incoming deposit of {AMOUNT} USD has cleared custodian settlement and has been credited directly to your live trading account.\n\nAll client balances are kept separate from company operating funds.\n\nHappy trading,\n{BRAND} Treasury Operations`
   },
   {
     id: 'withdrawal-dispatched',
@@ -403,7 +403,6 @@ export const AdminEmailsTab: React.FC<AdminEmailsTabProps> = ({ onNotify }) => {
 
               <div className="pt-3 border-t border-white/10 text-[10px] text-white/40 space-y-0.5">
                 <div>{config.legalName}{config.companyNumber ? ` • Company No. ${config.companyNumber}` : ''}</div>
-                <div>Authorised and Regulated by the Financial Conduct Authority (FRN 583261)</div>
               </div>
             </div>
           </div>

@@ -5,21 +5,21 @@ export const TrustSafety: React.FC = () => {
   const cards = [
     {
       icon: <ShieldCheck className="w-8 h-8 text-[#6dff8a]" />,
-      title: 'Regulated entities.',
-      description: 'Wherever you sign up, TradeShark Ltd answers directly to stringent Tier-1 global regulators. No exceptions.',
-      tags: ['FCA (UK)', 'CySEC (EU)', 'ASIC (Australia)', 'FinCEN (US)']
+      title: 'Verified clients.',
+      description: 'Every account goes through identity verification and anti-money-laundering screening before funds can be withdrawn.',
+      tags: ['KYC checks', 'AML screening', 'Sanctions & PEP checks']
     },
     {
       icon: <Landmark className="w-8 h-8 text-[#6dff8a]" />,
       title: 'Your money, held separately.',
-      description: 'Segregated accounts at some of the world’s largest tier-1 banking institutions. Not a cent sits on our operational balance sheet.',
-      tags: ['Barclays', 'Deutsche Bank', 'BNY Mellon', 'J.P. Morgan']
+      description: 'Client funds are kept separate from company operating funds, and withdrawals only go to verified destinations.',
+      tags: ['Separate client accounts', 'Verified withdrawals', 'Full transaction history']
     },
     {
       icon: <Lock className="w-8 h-8 text-[#6dff8a]" />,
-      title: 'Investor protection.',
-      description: 'TradeShark Ltd client funds are protected under statutory compensation schemes and top-tier private insurance coverage.',
-      tags: ['FSCS (up to £85k)', 'ICF (up to €20k)', 'Lloyd’s of London (up to $1M)']
+      title: 'Account security.',
+      description: 'Encrypted sessions, secure password storage and a complete audit trail of every sensitive action on your account.',
+      tags: ['Encrypted sessions', 'Email alerts', 'Audit trail']
     }
   ];
 
@@ -33,10 +33,10 @@ export const TrustSafety: React.FC = () => {
             Security &amp; Compliance
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-            Trusted by 40M+ users. Obviously.
+            Built with security first.
           </h2>
           <p className="text-sm sm:text-base text-[#a3a89e]">
-            Your security is our prime directive. Explore how TradeShark Ltd safeguards client assets worldwide.
+            Your security is our prime directive. Here is how we keep your account and your money safe.
           </p>
         </div>
 

@@ -5,28 +5,28 @@ export const TrustBar: React.FC = () => {
   const trustItems = [
     {
       icon: <Calendar className="w-5 h-5 text-[#6dff8a]" />,
-      title: 'Established 2014',
-      subtitle: '12+ years experience'
+      title: 'Multi-Asset',
+      subtitle: 'Stocks, ETFs, crypto & more'
     },
     {
       icon: <Award className="w-5 h-5 text-[#6dff8a]" />,
-      title: 'Nasdaq Listed',
-      subtitle: 'Ticker: SHRK'
+      title: 'Low Fees',
+      subtitle: 'Commission-free stocks & ETFs'
     },
     {
       icon: <Users className="w-5 h-5 text-[#6dff8a]" />,
-      title: '40M+ Users',
-      subtitle: 'Across 75 countries'
+      title: 'Social Investing',
+      subtitle: 'Copy top-performing investors'
     },
     {
       icon: <ShieldCheck className="w-5 h-5 text-[#6dff8a]" />,
-      title: 'Regulated',
-      subtitle: 'FCA, CySEC & ASIC'
+      title: 'Verified Accounts',
+      subtitle: 'KYC & AML checks on every client'
     },
     {
       icon: <Lock className="w-5 h-5 text-[#6dff8a]" />,
-      title: 'Protected Funds',
-      subtitle: 'Under FSCS & Tier 1 Banks'
+      title: 'Secure Platform',
+      subtitle: 'Encrypted sessions & audit trail'
     }
   ];
 

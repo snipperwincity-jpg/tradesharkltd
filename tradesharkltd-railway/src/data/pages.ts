@@ -216,9 +216,9 @@ export const SITE_PAGES: SitePage[] = [
   }),
   P({
     slug: 'account-protection', group: 'Benefits', eyebrow: 'Your money, protected', title: 'Account Protection',
-    intro: 'Client money is held in segregated accounts at tier-1 banks, separate from company funds.',
+    intro: 'Client money is kept separate from company operating funds.',
     sections: [
-      { heading: 'How we protect you', bullets: ['Segregated client money accounts', 'Negative balance protection for retail clients', 'Encrypted sessions and full audit trail of account activity', 'Withdrawals only to verified destinations after identity checks'] },
+      { heading: 'How we protect you', bullets: ['Client funds kept separate from company funds', 'Negative balance protection for retail clients', 'Encrypted sessions and full audit trail of account activity', 'Withdrawals only to verified destinations after identity checks'] },
       { heading: 'Keep your account secure', bullets: ['Use a unique password of at least 8 characters', 'Never share your login details - our staff will never ask for your password', 'Review login and funding emails and report anything unusual to {support}'] },
     ],
     related: ['regulation', 'verification'],
@@ -307,7 +307,7 @@ export const SITE_PAGES: SitePage[] = [
       { heading: 'Brand guidelines', body: 'Please use our name as "{brand}" and our legal name as "{legal}". Logo files are available on request.' },
     ],
     form: 'press', formTitle: 'Press enquiry',
-    related: ['about', 'awards'],
+    related: ['about', 'careers'],
   }),
   P({
     slug: 'careers', group: 'Company', eyebrow: "We're hiring", title: 'Careers at {brand}',
@@ -326,14 +326,6 @@ export const SITE_PAGES: SitePage[] = [
       { heading: 'Corporate information', body: 'Registered office: {address}. For financial statements, governance documents and shareholder enquiries please contact our investor relations team using the form below.' },
     ],
     form: 'investors', formTitle: 'Investor enquiry',
-    related: ['about', 'press'],
-  }),
-  P({
-    slug: 'awards', group: 'Company', eyebrow: 'Recognition', title: 'Global Awards',
-    intro: 'Recognition for our platform, products and client service.',
-    sections: [
-      { heading: 'Highlights', bullets: ['Best Social Trading Platform', 'Best Multi-Asset Broker for Beginners', 'Excellence in Client Education', 'Most Innovative Use of AI in Retail Investing'] },
-    ],
     related: ['about', 'press'],
   }),
 
@@ -479,7 +471,7 @@ export const LEGACY_LINKS: Record<string, string> = {
   academy: '/academy', basics: '/getting-started', insights: '/market-news', earnings: '/earnings-calendar', digest: '/daily-digest',
   about: '/about', support: '/help', help: '/help', media: '/press', careers: '/careers', investors: '/investor-relations', ir: '/investor-relations',
   risk: '/risk-disclosure', safety: '/regulation', regulation: '/regulation', webtrader: '/webtrader', demo: '/practice-account',
-  deposit: '/how-to-deposit', 'open-account': '/open-account', responsible: '/responsible-trading', awards: '/awards',
+  deposit: '/how-to-deposit', 'open-account': '/open-account', responsible: '/responsible-trading',
   privacy: '/privacy', terms: '/terms', cookies: '/cookies', invite: '/invite-a-friend', affiliates: '/affiliates', pro: '/pro-investor-program',
   contact: '/help',
 };

@@ -104,7 +104,7 @@ export const Hero: React.FC<HeroProps> = ({ onStartInvesting, onSelectInstrument
 
               {/* Exact eToro Headline */}
               <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-bold tracking-tight text-[#f4f4f0] leading-[1.08]">
-                A window into what millions of investors are doing<span className="text-[#6dff8a]">.</span>
+                A window into what other investors are doing<span className="text-[#6dff8a]">.</span>
               </h1>
 
               {/* Subheading */}
@@ -146,8 +146,8 @@ export const Hero: React.FC<HeroProps> = ({ onStartInvesting, onSelectInstrument
                   <div className="text-xs text-[#a3a89e]">Commission on ETFs</div>
                 </div>
                 <div>
-                  <div className="text-xl sm:text-2xl font-bold text-white font-heading">40M+</div>
-                  <div className="text-xs text-[#a3a89e]">Global community</div>
+                  <div className="text-xl sm:text-2xl font-bold text-white font-heading">24/7</div>
+                  <div className="text-xs text-[#a3a89e]">Crypto markets</div>
                 </div>
               </div>
 

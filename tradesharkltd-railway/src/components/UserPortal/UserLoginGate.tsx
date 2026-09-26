@@ -16,7 +16,7 @@ import {
 import { TradeSharkLogo } from '../TradeSharkLogo';
 import { useBrokerage } from '../../context/BrokerageContext';
 import { UserAccount } from '../../types';
-import { api, errMsg } from '../../lib/api';
+import { errMsg } from '../../lib/api';
 import { navigate } from '../../lib/router';
 import { COUNTRIES } from '../../data/countries';
 
@@ -59,13 +59,6 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
   // Status & Feedback
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Demo accounts (only when ENABLE_DEMO_LOGINS=true on the server)
-  const [demoAccounts, setDemoAccounts] = useState<{ name: string; email: string; password: string; tier: string; balance: number }[]>([]);
-  useEffect(() => {
-    if (!config.features.demoLogins) return;
-    api.get('/api/demo/accounts').then(r => setDemoAccounts(r.users || [])).catch(() => undefined);
-  }, [config.features.demoLogins]);
 
   const toSession = (user: UserAccount, remember: boolean): UserSession => ({
     userId: user.id,
@@ -143,19 +136,19 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-white/60">Global Client Capital</span>
-              <span className="text-white font-mono font-bold">$842M+ Segregated</span>
+              <span className="text-white font-mono font-bold">Kept separate</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-white/60">Regulatory Framework</span>
+              <span className="text-white/60">Account Security</span>
               <span className="text-yellow-400 font-bold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>FCA / CySEC</span>
+                <span>KYC Verified</span>
               </span>
             </div>
           </div>
 
           <p className="text-[11px] text-white/50 leading-relaxed">
-            Direct institutional connectivity to NASDAQ, LSE, and Tier-1 Crypto liquidity pools.
+            Trade global stocks, ETFs, crypto and currencies from one secure account.
           </p>
         </div>
       </div>
@@ -286,33 +279,6 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
               )}
             </button>
 
-            {/* Demo client accounts (shown only when ENABLE_DEMO_LOGINS=true) */}
-            {demoAccounts.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/10 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] text-white/60">
-                  <span className="font-semibold text-white/80">Demo Client Accounts:</span>
-                  <span className="text-[10px] text-[#6dff8a]">Click to autofill</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {demoAccounts.slice(0, 6).map((acc, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => { setLoginIdentifier(acc.email); setLoginPassword(acc.password); setErrorMessage(null); }}
-                      className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                        loginIdentifier.toLowerCase() === acc.email.toLowerCase()
-                          ? 'bg-[#6dff8a]/15 border-[#6dff8a] text-white'
-                          : 'bg-black/40 border-white/10 hover:border-white/20 text-white/80 hover:text-white'
-                      }`}
-                    >
-                      <div className="text-[11px] font-bold text-white">{acc.name}</div>
-                      <div className="text-[10px] text-[#6dff8a] font-mono truncate">{acc.email}</div>
-                      <div className="text-[9px] text-white/40">{acc.tier}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </form>
         ) : (
           /* Mode 2: REGISTER FORM */
@@ -370,7 +336,7 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
                     required
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="+1 555 0192"
+                    placeholder="Phone number"
                     className="w-full bg-[#181c10] border border-white/15 focus:border-[#6dff8a] rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none transition-colors"
                   />
                 </div>

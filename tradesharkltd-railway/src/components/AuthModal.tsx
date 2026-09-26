@@ -92,20 +92,20 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
                 <span className="text-[#6dff8a] font-mono font-bold">&lt; 1.2ms</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/60">Global Client Assets</span>
-                <span className="text-white font-mono font-bold">$842M+</span>
+                <span className="text-white/60">Markets Available</span>
+                <span className="text-white font-mono font-bold">Stocks • Crypto • FX</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/60">Tier-1 Regulatory Escrow</span>
+                <span className="text-white/60">Account Security</span>
                 <span className="text-yellow-400 font-bold flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>FCA / CySEC</span>
+                  <span>KYC Verified</span>
                 </span>
               </div>
             </div>
 
             <p className="text-[11px] text-white/50 leading-relaxed">
-              Trade over 5,000 global stocks, forex pairs, indices, and crypto with institutional zero-spread matching.
+              Trade over 5,000 global stocks, forex pairs, indices, and crypto from one account.
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
                 </h3>
                 <p className="text-xs text-[#a3a89e]">
                   {mode === 'signup' 
-                    ? 'Join 40M+ investors trading stocks, crypto, and ETFs.' 
+                    ? 'Start trading stocks, crypto, and ETFs today.' 
                     : 'Access your portfolio, live watchlists, and CopyTrader™.'}
                 </p>
               </div>
@@ -250,36 +250,6 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
                   )}
                 </button>
               </form>
-
-              {/* Demo Accounts Quick-Fill Helper for Login */}
-              {mode === 'login' && (
-                <div className="pt-2 border-t border-white/10 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-white/60">
-                    <span className="font-semibold text-white/80">Available Accounts:</span>
-                    <span className="text-[10px] text-[#6dff8a]">Click to autofill</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
-                      { name: 'Alex Mercer (Pro)', email: 'alex.m@gmail.com', pass: 'trader123' },
-                      { name: 'Sarah Jenkins (VIP)', email: 'sjenkins@techcorp.io', pass: 'vip123' }
-                    ].map((acc, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          setEmail(acc.email);
-                          setPassword(acc.pass);
-                          setErrorMessage(null);
-                        }}
-                        className="p-1.5 rounded-lg bg-black/40 border border-white/10 hover:border-[#6dff8a]/40 text-left transition-all text-xs"
-                      >
-                        <div className="font-semibold text-white text-[11px] truncate">{acc.name}</div>
-                        <div className="text-[10px] text-[#6dff8a] font-mono truncate">{acc.email}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Toggle login / signup */}
               <div className="text-center text-xs text-[#a3a89e] pt-1">

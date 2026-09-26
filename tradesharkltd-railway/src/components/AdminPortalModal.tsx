@@ -143,7 +143,7 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
   // New User Setup Form State
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPhone, setNewUserPhone] = useState('+44 ');
+  const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserCountry, setNewUserCountry] = useState('United Kingdom');
   const [newUserTier, setNewUserTier] = useState<UserTier>('Tier 2 - Verified Pro');
   const [newUserCurrency, setNewUserCurrency] = useState<'USD' | 'EUR' | 'GBP'>('USD');
@@ -265,7 +265,7 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
     overview: { title: 'Executive Overview & Broker Operations', subtitle: 'Global order flow, liquidity matching, and institutional capital tracking' },
     users: { title: 'User Account Registry & Permissions', subtitle: 'Real-time trader governance, balance adjustments, and risk tiers' },
     setup: { title: 'Setup & Provision Account', subtitle: 'Direct onboarding for institutional, VIP, and accredited retail traders' },
-    kyc: { title: 'KYC & Biometrics Verification Desk', subtitle: 'FCA/CySEC compliant passport, ID, and liveness verification audit' },
+    kyc: { title: 'KYC & Biometrics Verification Desk', subtitle: 'Passport, ID, address and selfie verification audit' },
     funding: { title: 'Funding Approvals & Capital Queue', subtitle: 'Treasury desk clearance for deposits and withdrawals' },
     emails: { title: 'Email Dispatch & Client Communications', subtitle: 'Automated compliance notices, margin calls, and broadcast announcements' },
     markets: { title: 'Market Trading & Risk Controls', subtitle: 'Dynamic spread overrides, circuit breaker halting, and slippage management' },
@@ -459,7 +459,7 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
                     <span className="text-2xl font-bold text-white font-mono">$842,610,940</span>
                     <div className="text-[11px] text-[#6dff8a] flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      <span>100% Segregated Tier-1 Bank</span>
+                      <span>Client funds kept separate</span>
                     </div>
                   </div>
 
@@ -496,7 +496,7 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
                       <p className="text-xs text-[#a3a89e]">Instant operational execution across user accounts, treasury, and compliance</p>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full bg-[#6dff8a]/10 border border-[#6dff8a]/30 text-[#6dff8a] text-xs font-bold">
-                      FCA &amp; CySEC Dual Licensed
+                      Compliance Desk
                     </span>
                   </div>
 
@@ -594,11 +594,11 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
                     <div className="space-y-2 text-white/70">
                       <div className="flex justify-between py-1 border-b border-white/5">
                         <span>Regulatory Authorities:</span>
-                        <strong className="text-white">FCA (UK) &amp; CySEC (EU)</strong>
+                        <strong className="text-white">KYC / AML</strong>
                       </div>
                       <div className="flex justify-between py-1 border-b border-white/5">
                         <span>Client Money Protection:</span>
-                        <strong className="text-[#6dff8a]">FCSC £85k + £1M Excess Lloyd's</strong>
+                        <strong className="text-[#6dff8a]">Separate client funds</strong>
                       </div>
                       <div className="flex justify-between py-1 border-b border-white/5">
                         <span>Automated Email Clearance:</span>
@@ -849,7 +849,7 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
                     ${transactions.filter(t => t.status === 'Approved / Settled')
                       .reduce((acc, t) => acc + t.amount, 0).toLocaleString()}
                   </span>
-                  <span className="text-[11px] text-[#6dff8a]">Cleared with segregated custodian</span>
+                  <span className="text-[11px] text-[#6dff8a]">Cleared by treasury desk</span>
                 </div>
               </div>
 
@@ -1168,7 +1168,7 @@ const AdminPortalInner: React.FC<AdminPortalModalProps> = ({
                       onChange={(e) => setNewUserLeverage(e.target.value)}
                       className="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
                     >
-                      <option value="30">1:30 (FCA / ESMA Standard)</option>
+                      <option value="30">1:30 (Standard retail)</option>
                       <option value="100">1:100 (Pro Investor)</option>
                       <option value="200">1:200 (Experienced Trader)</option>
                       <option value="400">1:400 (VIP Institutional)</option>

@@ -45,7 +45,7 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="lg:col-span-5 space-y-5">
             <TradeSharkLogo size="lg" showLtd={true} />
             <p className="text-sm text-[#a3a89e] leading-relaxed max-w-sm">
-              A premier global financial intelligence and multi-asset trading platform empowering over 40 million users across 75 countries.
+              A multi-asset trading and investing platform for stocks, ETFs, crypto, commodities and more.
             </p>
 
             {/* Contact details (from site config) */}

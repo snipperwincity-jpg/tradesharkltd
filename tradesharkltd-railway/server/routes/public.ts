@@ -4,7 +4,6 @@ import { db, newId, nowStamp } from '../db';
 import { config } from '../config';
 import { mailProvider, queueMail } from '../mailer';
 import { createMessage, marketSnapshot, getQuote, getMarketSettings } from '../services';
-import { effectiveAdminPasswords } from '../seed';
 import { rateLimit } from '../rateLimit';
 import { INSTRUMENTS, POPULAR_INVESTORS } from '../../src/data/mockData';
 
@@ -51,17 +50,7 @@ publicRouter.get('/market', (_req, res) => {
   res.json({ quotes: marketSnapshot().map(q => ({ ...q, halted: !!halted[q.symbol]?.halted })), time: Date.now() });
 });
 
-publicRouter.get('/demo/accounts', (_req, res) => {
-  if (!config.enableDemoLogins) return res.json({ enabled: false, admins: [], users: [] });
-  const admins = db.all<any>('admins')
-    .filter(a => effectiveAdminPasswords[a.username])
-    .map(a => ({ username: a.username, role: a.role, name: a.name, password: effectiveAdminPasswords[a.username] }));
-  const users = db.filter<any>('users', u => u.demo).map(u => ({
-    name: u.name, email: u.email, tier: u.tier, balance: u.realBalance, status: u.status, kycStatus: u.kycStatus,
-    password: u.demoPassword === 'vip' ? config.demo.vipPassword : config.demo.userPassword,
-  }));
-  res.json({ enabled: true, admins, users });
-});
+publicRouter.get('/demo/accounts', (_req, res) => res.json({ enabled: false, admins: [], users: [] }));
 
 // ---------------- Public forms (contact, careers, press, affiliates, newsletter ...) ----------------
 const FORM_TYPES: Record<string, { label: string; category: 'SUPPORT' | 'ACCOUNT' | 'MARKET_ALERT'; ack: string }> = {

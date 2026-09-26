@@ -294,19 +294,6 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Quick Access: All Logins & Keys */}
-          {onOpenQuickLogins && (
-            <button
-              onClick={onOpenQuickLogins}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#6dff8a] bg-[#6dff8a]/10 hover:bg-[#6dff8a]/20 border border-[#6dff8a]/40 rounded-full transition-all cursor-pointer shadow-[0_0_12px_rgba(109,255,138,0.15)]"
-              title="View all demo accounts & passwords for Admin and User portals"
-            >
-              <Key className="w-3.5 h-3.5" />
-              <span>All Logins</span>
-            </button>
-          )}
-
-          {/* Direct Admin Portal Trigger */}
           {onOpenAdminPortal && (
             <button
               onClick={onOpenAdminPortal}
@@ -388,19 +375,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="pt-4 flex flex-col gap-3">
-              {onOpenQuickLogins && (
-                <button 
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenQuickLogins();
-                  }}
-                  className="w-full py-2.5 text-xs font-bold text-[#6dff8a] bg-[#6dff8a]/10 border border-[#6dff8a]/40 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>View All Logins &amp; Access Keys</span>
-                </button>
-              )}
-
               {onOpenAdminPortal && (
                 <button 
                   onClick={() => {

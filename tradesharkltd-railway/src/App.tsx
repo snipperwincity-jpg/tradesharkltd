@@ -12,7 +12,6 @@ import { ProductRange } from './components/ProductRange';
 import { PopularInvestors } from './components/PopularInvestors';
 import { AiProducts } from './components/AiProducts';
 import { TrustSafety } from './components/TrustSafety';
-import { SponsorshipStrip } from './components/SponsorshipStrip';
 import { FinalCta } from './components/FinalCta';
 import { Footer } from './components/Footer';
 import { Toasts } from './components/Toasts';
@@ -26,7 +25,6 @@ import { AuthModal } from './components/AuthModal';
 import { AiChatDrawer } from './components/AiChatDrawer';
 import { UserDashboardModal } from './components/UserDashboardModal';
 import { AdminPortalModal } from './components/AdminPortalModal';
-import { QuickLoginsModal } from './components/QuickLoginsModal';
 
 // Pages
 import { ContentPage } from './pages/ContentPage';
@@ -47,7 +45,6 @@ export default function App() {
   const { currentUser, config, instruments, loginUser, loginAdmin, notify, ready } = useBrokerage();
   const loc = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isQuickLoginsOpen, setIsQuickLoginsOpen] = useState(false);
   const [tradeInstrument, setTradeInstrument] = useState<Instrument | null>(null);
   const [copyInvestor, setCopyInvestor] = useState<PopularInvestor | null>(null);
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'signup' }>({ isOpen: false, mode: 'signup' });
@@ -105,24 +102,6 @@ export default function App() {
 
   const openAuth = (mode: 'login' | 'signup') => setAuthModal({ isOpen: true, mode });
 
-  const handleDirectLoginUser = async (email: string, password: string) => {
-    try {
-      const u = await loginUser(email, password, true);
-      notify(`Logged in as ${u.name}`);
-      setIsQuickLoginsOpen(false);
-      openUserDashboard();
-    } catch (e) { notify(errMsg(e), 'error'); }
-  };
-
-  const handleDirectLoginAdmin = async (username: string, password: string) => {
-    try {
-      const a = await loginAdmin(username, password, true);
-      notify(`Logged in as ${a.role} (${a.username})`);
-      setIsQuickLoginsOpen(false);
-      openAdminPortal();
-    } catch (e) { notify(errMsg(e), 'error'); }
-  };
-
   const handleOpenTradeForSymbol = (symbol: string) => {
     const found = instruments.find(i => i.symbol.toLowerCase() === symbol.toLowerCase()) || instruments[0];
     setIsAiChatOpen(false);
@@ -158,7 +137,6 @@ export default function App() {
         <PopularInvestors onCopyInvestor={(inv) => setCopyInvestor(inv)} onExploreAll={() => navigate('/popular-investors')} />
         <AiProducts onOpenAiChat={() => setIsAiChatOpen(true)} />
         <TrustSafety />
-        <SponsorshipStrip />
         <FinalCta onSignUp={() => handleCta('signup')} />
       </>
     );
@@ -278,14 +256,6 @@ export default function App() {
         />
       )}
 
-      <QuickLoginsModal
-        isOpen={isQuickLoginsOpen}
-        onClose={() => setIsQuickLoginsOpen(false)}
-        onDirectLoginUser={handleDirectLoginUser}
-        onDirectLoginAdmin={handleDirectLoginAdmin}
-        onOpenUserGate={() => { setIsQuickLoginsOpen(false); openUserDashboard(); }}
-        onOpenAdminGate={() => { setIsQuickLoginsOpen(false); openAdminPortal(); }}
-      />
     </div>
   );
 }

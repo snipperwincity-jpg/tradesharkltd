@@ -58,7 +58,7 @@ export const ProductRange: React.FC<ProductRangeProps> = ({
       bullets: [
         'Trade physical & non-expiry commodity CFDs 24/7.',
         'Hedge inflation with precious metals and energy markets.',
-        'Built-in guaranteed stop-loss and take-profit controls.'
+        'Built-in stop-loss and take-profit controls.'
       ],
       ctaText: 'Trade Commodities'
     },
@@ -66,7 +66,7 @@ export const ProductRange: React.FC<ProductRangeProps> = ({
       headline: 'Major global indices. Minor spreads.',
       bullets: [
         'Ultra-tight spreads on NASDAQ 100, S&P 500, FTSE 100 and DAX 40.',
-        'Lightning execution speeds with zero slippage guarantees.',
+        'Fast order execution with transparent pricing.',
         'Gain broad market exposure with up to 20x leverage.'
       ],
       ctaText: 'Trade Indices'

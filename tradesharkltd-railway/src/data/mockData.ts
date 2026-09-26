@@ -534,7 +534,6 @@ export const FOOTER_NAV_COLUMNS = [
       { name: 'About TradeShark Ltd', href: '/about' },
       { name: 'Investor Relations', href: '/investor-relations' },
       { name: 'Careers at TradeShark', href: '/careers' },
-      { name: 'Global Awards', href: '/awards' },
       { name: 'Press & Media', href: '/press' }
     ]
   },

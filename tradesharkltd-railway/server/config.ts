@@ -59,7 +59,7 @@ export const config = {
     careersEmail: env('CAREERS_EMAIL', supportEmail),
     supportPhone: env('SUPPORT_PHONE', ''),
     whatsapp: env('SUPPORT_WHATSAPP', ''),
-    address: env('COMPANY_ADDRESS', '25 Bank Street, Canary Wharf, London, E14 5JP, United Kingdom'),
+    address: env('COMPANY_ADDRESS', ''),
     companyNumber: env('COMPANY_NUMBER', ''),
     regulatoryText: env('REGULATORY_TEXT', ''),
     defaultAccountManager: env('DEFAULT_ACCOUNT_MANAGER', 'Client Services Desk'),

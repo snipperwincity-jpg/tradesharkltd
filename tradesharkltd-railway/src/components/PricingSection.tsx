@@ -23,7 +23,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onLearnMore }) =
       metric: 'From 0.3%',
       title: 'Trade more crypto, pay less.',
       description: 'Transparent tiered spreads starting at 0.3% for active traders, capped at 1%.',
-      features: ['150+ cryptocurrencies', 'Cold-storage insured custody', 'Staking yield up to 12% APY']
+      features: ['150+ cryptocurrencies', 'Secure cold-storage custody', 'Staking yield up to 12% APY']
     }
   ];
 

@@ -170,9 +170,9 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
     portfolio: { title: 'Portfolio Overview & Wallet', subtitle: 'Real-time equity breakdown and allocation analytics' },
     positions: { title: 'Open CFD & Margin Positions', subtitle: 'Manage active leverage contracts and take-profit/stop-loss' },
     markets: { title: 'Live Screener & Markets', subtitle: 'Institutional execution across 5,000+ instruments' },
-    deposit: { title: 'Deposit Client Capital', subtitle: 'Segregated accounts under FCA client money protection' },
+    deposit: { title: 'Deposit Client Capital', subtitle: 'Deposit funds into your trading account' },
     withdraw: { title: 'Disburse Funds', subtitle: 'Secure disbursements to validated bank accounts' },
-    kyc: { title: 'KYC & Regulatory Verification', subtitle: 'FCA & CySEC compliant identity and address verification' },
+    kyc: { title: 'KYC & Regulatory Verification', subtitle: 'Identity and address verification' },
     inbox: { title: 'Official Communications & Inbox', subtitle: 'Regulatory dispatches, clearance notes, and broker messaging' },
     copy: { title: 'CopyTrader™ Portfolios', subtitle: 'Automatically mirror verified Pro Investors' },
     history: { title: 'Funding & Ledger History', subtitle: 'Complete immutable record of all deposits, withdrawals, and trades' },
@@ -520,7 +520,7 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
             <div className="max-w-md mx-auto space-y-5 py-4">
               <div className="text-center space-y-1">
                 <h3 className="text-xl font-bold text-white">Deposit to {config.appName}</h3>
-                <p className="text-xs text-[#a3a89e]">Fund your segregated account. Submissions sync with the Admin Approvals Queue.</p>
+                <p className="text-xs text-[#a3a89e]">Fund your trading account. Submissions sync with the Admin Approvals Queue.</p>
               </div>
 
               {depositNotice && (
@@ -876,7 +876,7 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
                   <div className="flex items-center justify-between p-3.5 rounded-2xl bg-black/40 border border-white/5">
                     <div>
                       <div className="font-bold text-white">Investor Protection Guarantee</div>
-                      <div className="text-white/50">Client money held in segregated accounts at tier-1 banks</div>
+                      <div className="text-white/50">Client funds kept separate from company funds</div>
                     </div>
                     <span className="px-3 py-1 rounded-full bg-[#6dff8a]/20 text-[#6dff8a] font-bold text-[11px]">
                       ACTIVE

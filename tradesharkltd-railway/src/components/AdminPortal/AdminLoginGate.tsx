@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Lock, 
   Eye, 
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { TradeSharkLogo } from '../TradeSharkLogo';
 import { useBrokerage } from '../../context/BrokerageContext';
-import { api, errMsg } from '../../lib/api';
+import { errMsg } from '../../lib/api';
 
 export interface AdminSession {
   username: string;
@@ -32,19 +32,13 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({
   onClose,
   sessionExpiredNotice = false
 }) => {
-  const { loginAdmin, config } = useBrokerage();
+  const { loginAdmin } = useBrokerage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [demoAdmins, setDemoAdmins] = useState<{ username: string; password: string; role: string }[]>([]);
-
-  useEffect(() => {
-    if (!config.features.demoLogins) return;
-    api.get('/api/demo/accounts').then(r => setDemoAdmins(r.admins || [])).catch(() => undefined);
-  }, [config.features.demoLogins]);
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -107,11 +101,11 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-white/60">Escrow Vault</span>
-              <span className="text-white font-mono font-semibold">Tier-1 Segregated</span>
+              <span className="text-white font-mono font-semibold">Separate client funds</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-white/60">Audit Protocol</span>
-              <span className="text-yellow-400 font-mono font-semibold">FCA Hash-Chain</span>
+              <span className="text-yellow-400 font-mono font-semibold">Audit Trail</span>
             </div>
           </div>
           <p className="text-[10px] text-white/50">
@@ -218,31 +212,6 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({
           </button>
         </form>
 
-        {demoAdmins.length > 0 && (
-          <div className="mt-4 pt-3.5 border-t border-white/10 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-white/60">
-              <span className="font-semibold text-white/80">Demo Staff Desks:</span>
-              <span className="text-[10px] text-[#6dff8a]">Click to autofill</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {demoAdmins.map((acc, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => { setUsername(acc.username); setPassword(acc.password); setErrorMessage(null); }}
-                  className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                    username.toLowerCase() === acc.username.toLowerCase()
-                      ? 'bg-[#6dff8a]/15 border-[#6dff8a] text-white'
-                      : 'bg-black/40 border-white/10 hover:border-white/20 text-white/80 hover:text-white'
-                  }`}
-                >
-                  <div className="font-mono text-[11px] font-bold text-[#6dff8a] truncate">{acc.username}</div>
-                  <div className="text-[9px] text-white/40 truncate">{acc.role.split(' ')[0]}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

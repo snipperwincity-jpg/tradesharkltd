@@ -145,7 +145,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
         <div className="mt-2 text-xs text-white/50 flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#6dff8a] animate-ping" />
-          <span>FCA Back-Office Control Suite</span>
+          <span>Back-Office Control Suite</span>
         </div>
       </div>
 
