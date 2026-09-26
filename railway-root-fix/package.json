@@ -1,0 +1,11 @@
+{
+  "name": "tradeshark-root",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Root wrapper so Railway builds the app inside tradesharkltd-railway/ automatically",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "cd tradesharkltd-railway && npm ci --include=dev && npm run build",
+    "start": "cd tradesharkltd-railway && npm start"
+  }
+}
