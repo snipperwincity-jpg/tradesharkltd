@@ -188,14 +188,12 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenAuth={openAuth}
         onOpenUserDashboard={() => openUserDashboard()}
-        onOpenAdminPortal={config.features.showAdminLink ? openAdminPortal : undefined}
-        onOpenQuickLogins={config.features.demoLogins ? () => setIsQuickLoginsOpen(true) : undefined}
         currentUser={currentUser}
       />
 
       <main className="flex-1">{body}</main>
 
-      <Footer onOpenUserDashboard={() => openUserDashboard()} onOpenAdminPortal={openAdminPortal} />
+      <Footer onOpenUserDashboard={() => openUserDashboard()} />
 
       {/* Floating AI Assistant Trigger Button */}
       <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
@@ -268,7 +266,6 @@ export default function App() {
           onClose={closePortal}
           initialTab={loc.search.get('tab') || undefined}
           onOpenTrade={handleOpenTradeForSymbol}
-          onOpenAdminPortal={config.features.showAdminLink ? openAdminPortal : undefined}
         />
       )}
 
