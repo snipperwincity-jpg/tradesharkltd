@@ -121,7 +121,10 @@ interface BrokerageContextType {
 
   // Auth
   loginUser: (identifier: string, password: string, remember: boolean) => Promise<UserAccount>;
-  registerUser: (data: { name: string; email: string; password: string; phone?: string; country?: string; ref?: string }) => Promise<UserAccount>;
+  registerUser: (data: { name: string; email: string; password: string; phone?: string; country?: string; ref?: string }) => Promise<UserAccount & { debugOtp?: string; requireOtp?: boolean }>;
+  verifyOtp: (email: string, otp: string) => Promise<UserAccount>;
+  resendOtp: (email: string) => Promise<{ ok: boolean; message: string; debugOtp?: string }>;
+  requestEmailOtp: () => Promise<{ ok: boolean; message: string; debugOtp?: string }>;
   logoutUser: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<string>;
   resetPassword: (token: string, password: string) => Promise<void>;
@@ -319,7 +322,22 @@ export const BrokerageProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const r = await api.post('/api/auth/register', { ...data, ref, remember: true });
     setCurrentUser(r.user);
     await loadUser();
+    return { ...r.user, debugOtp: r.debugOtp, requireOtp: r.requireOtp } as UserAccount & { debugOtp?: string; requireOtp?: boolean };
+  };
+
+  const verifyOtp = async (email: string, otp: string) => {
+    const r = await api.post('/api/auth/verify-otp', { email, otp });
+    setCurrentUser(r.user);
+    await loadUser();
     return r.user as UserAccount;
+  };
+
+  const resendOtp = async (email: string) => {
+    return await api.post('/api/auth/resend-otp', { email });
+  };
+
+  const requestEmailOtp = async () => {
+    return await api.post('/api/auth/request-email-otp');
   };
 
   const logoutUser = async () => {
@@ -546,7 +564,7 @@ export const BrokerageProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <BrokerageContext.Provider value={{
       ready, config, instruments, users, currentUser, adminSession, transactions, auditLogs, positions, emails, copies,
       marketAssets, payments, toasts, notify, refresh,
-      loginUser, registerUser, logoutUser, requestPasswordReset, resetPassword, verifyEmail, resendVerification,
+      loginUser, registerUser, verifyOtp, resendOtp, requestEmailOtp, logoutUser, requestPasswordReset, resetPassword, verifyEmail, resendVerification,
       changePassword, updateProfile, loginAdmin, logoutAdmin,
       setCurrentUserId, createUser, updateUser, setUserStatus, toggleTradingPermission, updateUserTier, updateUserLeverage,
       sendPasswordReset, deleteUser,

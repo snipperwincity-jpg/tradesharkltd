@@ -6,7 +6,7 @@ import {
   getUserFromReq, getAdminFromReq, requireUser, randomToken, sha256, publicAdmin, AdminRecord,
 } from '../auth';
 import { audit, baseUserRecord, findUserByEmail, findUserByLogin, notifyAdmins, publicUser, createMessage } from '../services';
-import { queueMail } from '../mailer';
+import { queueMail, sendMail, mailProvider } from '../mailer';
 import { rateLimit } from '../rateLimit';
 
 export const authRouter = Router();
@@ -22,6 +22,17 @@ export async function createToken(type: 'reset' | 'verify' | 'setup', userId: st
   return raw;
 }
 
+export async function createOtpToken(userId: string, email: string): Promise<string> {
+  const cleanEmail = email.trim().toLowerCase();
+  for (const t of db.filter<any>('tokens', t => (t.userId === userId || t.email === cleanEmail) && t.type === 'otp')) {
+    await db.remove('tokens', t.id);
+  }
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const id = sha256(`otp:${cleanEmail}:${otp}`);
+  await db.put('tokens', { id, type: 'otp', userId, email: cleanEmail, otp, expires: Date.now() + 15 * 60 * 1000 });
+  return otp;
+}
+
 async function consumeToken(raw: string, types: string[]) {
   const t = db.get<any>('tokens', sha256(String(raw || '')));
   if (!t || !types.includes(t.type) || t.expires < Date.now()) return null;
@@ -29,15 +40,18 @@ async function consumeToken(raw: string, types: string[]) {
   return t;
 }
 
-export async function sendVerificationEmail(user: any) {
+export async function sendVerificationEmail(user: any, otpCode?: string) {
   const token = await createToken('verify', user.id, 72);
+  const otp = otpCode || (await createOtpToken(user.id, user.email));
   queueMail({
     to: user.email,
-    subject: `Verify your ${config.brand.appName} email address`,
-    fromName: 'Accounts',
-    text: `Hi ${user.name},\n\nPlease confirm that this is your email address so we can keep your account secure and send you important notifications.\n\nThis link expires in 72 hours.`,
+    subject: `Your ${config.brand.appName} Verification Code: ${otp}`,
+    fromName: 'Security Desk',
+    otp,
+    text: `Hi ${user.name},\n\nThank you for choosing ${config.brand.appName} Ltd.\n\nYour One-Time Passcode (OTP) is:\n\n[ ${otp} ]\n\nThis 6-digit code is valid for 15 minutes. Enter this code on the verification screen to activate your account.\n\nAlternatively, you can verify your email address directly by clicking the link below:\n${config.appUrl}/verify-email?token=${token}\n\nIf you did not register for a TradeShark account, please ignore this email.`,
     cta: { label: 'Verify email address', url: `${config.appUrl}/verify-email?token=${token}` },
   });
+  return { token, otp };
 }
 
 // ---------------- USER ----------------
@@ -58,19 +72,28 @@ authRouter.post('/register', rateLimit('register', 10, 3600), async (req, res) =
   await db.put('users', user);
   await audit('Self-Registration', 'Account Created', `New client ${user.name} (${user.email}) registered online from ${user.country || 'unknown country'}.`, 'USER_MGMT', `${user.id} (${user.name})`);
 
+  const { otp } = await sendVerificationEmail(user);
+
   await createMessage({
     userId: user.id,
     category: 'ACCOUNT',
     direction: 'outbound',
-    subject: `Welcome to ${config.brand.appName}, ${user.name.split(' ')[0]}!`,
-    body: `Dear ${user.name},\n\nWelcome to ${config.brand.appName}. Your trading account ${user.id} is ready.\n\nNext steps:\n1. Verify your email address (we sent you a separate link).\n2. Complete identity verification (KYC) in the Verification Centre.\n3. Fund your account and start trading - or practise first with your ${'$'}${config.practiceBalance.toLocaleString()} virtual account.\n\nIf you have any questions, reply to this email or contact ${config.brand.supportEmail}.\n\nThe ${config.brand.appName} Team`,
+    subject: `Welcome to ${config.brand.appName}, ${user.name.split(' ')[0]}! Verification OTP: ${otp}`,
+    body: `Dear ${user.name},\n\nWelcome to ${config.brand.appName}. Your trading account ${user.id} is ready.\n\nYour One-Time Passcode (OTP) is: ${otp}\n(Valid for 15 minutes)\n\nNext steps:\n1. Verify your email with the 6-digit OTP code.\n2. Complete identity verification (KYC) in the Verification Centre.\n3. Fund your account and start trading - or practise first with your $${config.practiceBalance.toLocaleString()} virtual account.\n\nIf you have any questions, reply to this email or contact ${config.brand.supportEmail}.\n\nThe ${config.brand.appName} Team`,
     cta: { label: 'Open your client portal', url: `${config.appUrl}/dashboard` },
   });
-  await sendVerificationEmail(user);
+
   notifyAdmins(`New registration: ${user.name}`, `${user.name} (${user.email}) just registered.\nAccount: ${user.id}\nCountry: ${user.country || '-'}\nPhone: ${user.phone || '-'}${referrer ? `\nReferred by: ${referrer.name} (${referrer.id})` : ''}`, { label: 'Open admin console', url: `${config.appUrl}/admin` });
 
   const expiresAt = issueUserSession(res, user.id, remember !== false);
-  res.json({ user: publicUser(user), expiresAt });
+  const provider = mailProvider();
+  res.json({
+    user: publicUser(user),
+    expiresAt,
+    requireOtp: true,
+    otpEmail: cleanEmail,
+    debugOtp: provider === 'log' || !config.isProd ? otp : undefined
+  });
 });
 
 authRouter.post('/login', rateLimit('login', 20, 900), async (req, res) => {
@@ -153,11 +176,65 @@ authRouter.post('/verify-email', async (req, res) => {
   res.json({ ok: true });
 });
 
+authRouter.post('/verify-otp', rateLimit('verify-otp', 15, 900), async (req, res) => {
+  const { email, otp } = req.body || {};
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanOtp = String(otp || '').trim().replace(/\s+/g, '');
+  if (!cleanEmail || !cleanOtp) {
+    return res.status(400).json({ error: 'Email and 6-digit OTP code are required.' });
+  }
+  const id = sha256(`otp:${cleanEmail}:${cleanOtp}`);
+  const t = db.get<any>('tokens', id);
+  if (!t || t.type !== 'otp' || t.expires < Date.now()) {
+    return res.status(400).json({ error: 'Invalid or expired OTP code. Please check your code or click "Resend code".' });
+  }
+  await db.remove('tokens', id);
+  const user = db.get<any>('users', t.userId) || findUserByEmail(cleanEmail);
+  if (!user) {
+    return res.status(404).json({ error: 'User account not found.' });
+  }
+  await db.update('users', user.id, { emailVerified: true });
+  await audit('Email Verified', 'OTP Verification', `Client ${user.name} (${user.email}) successfully verified account email via 6-digit OTP.`, 'USER_MGMT', `${user.id} (${user.name})`);
+  const updatedUser = db.get<any>('users', user.id);
+  const expiresAt = issueUserSession(res, user.id, true);
+  res.json({ ok: true, message: 'Email successfully verified! Welcome to TradeShark.', user: publicUser(updatedUser), expiresAt });
+});
+
+authRouter.post('/resend-otp', rateLimit('resend-otp', 10, 900), async (req, res) => {
+  const { email } = req.body || {};
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) return res.status(400).json({ error: 'Email address is required.' });
+  const user = findUserByEmail(cleanEmail);
+  if (!user) {
+    return res.json({ ok: true, message: 'If an account exists for that email, a verification code has been dispatched.' });
+  }
+  const otp = await createOtpToken(user.id, cleanEmail);
+  await sendVerificationEmail(user, otp);
+  const provider = mailProvider();
+  res.json({
+    ok: true,
+    message: `A new 6-digit OTP verification code has been sent to ${cleanEmail}.`,
+    debugOtp: provider === 'log' || !config.isProd ? otp : undefined
+  });
+});
+
+authRouter.post('/request-email-otp', requireUser, rateLimit('req-otp', 10, 900), async (req, res) => {
+  const user = (req as any).user;
+  const otp = await createOtpToken(user.id, user.email);
+  await sendVerificationEmail(user, otp);
+  const provider = mailProvider();
+  res.json({
+    ok: true,
+    message: `A new 6-digit OTP verification code has been sent to ${user.email}.`,
+    debugOtp: provider === 'log' || !config.isProd ? otp : undefined
+  });
+});
+
 authRouter.post('/resend-verification', requireUser, rateLimit('resend', 5, 3600), async (req, res) => {
   const user = (req as any).user;
   if (user.emailVerified) return res.json({ ok: true, message: 'Your email is already verified.' });
   await sendVerificationEmail(user);
-  res.json({ ok: true, message: `Verification link sent to ${user.email}.` });
+  res.json({ ok: true, message: `Verification link and OTP code sent to ${user.email}.` });
 });
 
 authRouter.post('/change-password', requireUser, async (req, res) => {

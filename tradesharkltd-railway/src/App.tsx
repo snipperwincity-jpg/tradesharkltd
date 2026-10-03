@@ -9,7 +9,7 @@ import { Hero } from './components/Hero';
 import { TrustBar } from './components/TrustBar';
 import { PricingSection } from './components/PricingSection';
 import { ProductRange } from './components/ProductRange';
-import { PopularInvestors } from './components/PopularInvestors';
+
 import { AiProducts } from './components/AiProducts';
 import { TrustSafety } from './components/TrustSafety';
 import { FinalCta } from './components/FinalCta';
@@ -20,7 +20,7 @@ import { CookieBanner } from './components/CookieBanner';
 // Modals
 import { SearchModal } from './components/SearchModal';
 import { TradeModal } from './components/TradeModal';
-import { CopyModal } from './components/CopyModal';
+// CopyModal removed from home page
 import { AuthModal } from './components/AuthModal';
 import { AiChatDrawer } from './components/AiChatDrawer';
 import { UserDashboardModal } from './components/UserDashboardModal';
@@ -32,7 +32,7 @@ import { MarketsPage } from './pages/MarketsPage';
 import { InvestorsPage } from './pages/InvestorsPage';
 import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage, NotFoundPage } from './pages/AuthPages';
 
-import { Instrument, PopularInvestor } from './types';
+import { Instrument } from './types';
 import { PAGE_BY_SLUG, LEGACY_LINKS, CtaAction } from './data/pages';
 import { ArrowUp, ArrowRight } from 'lucide-react';
 import { useBrokerage } from './context/BrokerageContext';
@@ -46,7 +46,7 @@ export default function App() {
   const loc = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [tradeInstrument, setTradeInstrument] = useState<Instrument | null>(null);
-  const [copyInvestor, setCopyInvestor] = useState<PopularInvestor | null>(null);
+  // Copy investor state removed from home page
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'signup' }>({ isOpen: false, mode: 'signup' });
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -134,7 +134,7 @@ export default function App() {
         <TrustBar />
         <PricingSection onLearnMore={() => navigate('/fees')} />
         <ProductRange onSelectInstrument={(inst) => setTradeInstrument(inst)} onStartInvesting={() => handleCta('signup')} />
-        <PopularInvestors onCopyInvestor={(inv) => setCopyInvestor(inv)} onExploreAll={() => navigate('/popular-investors')} />
+        {/* PopularInvestors section removed from home page per user request */}
         <AiProducts onOpenAiChat={() => setIsAiChatOpen(true)} />
         <TrustSafety />
         <FinalCta onSignUp={() => handleCta('signup')} />
@@ -222,12 +222,7 @@ export default function App() {
         onOpenPortal={(tab) => { setTradeInstrument(null); openUserDashboard(tab); }}
       />
 
-      <CopyModal
-        investor={copyInvestor}
-        onClose={() => setCopyInvestor(null)}
-        onRequireAuth={() => { setCopyInvestor(null); openAuth('login'); }}
-        onOpenPortal={(tab) => { setCopyInvestor(null); openUserDashboard(tab); }}
-      />
+      {/* CopyModal removed from home page - accessible via /popular-investors */}
 
       <AuthModal
         isOpen={authModal.isOpen}

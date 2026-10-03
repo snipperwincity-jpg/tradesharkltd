@@ -17,7 +17,9 @@ import {
   Eye, 
   Building2,
   Lock,
-  LogOut
+  LogOut,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { TradeSharkLogo } from '../TradeSharkLogo';
 import { UserAccount } from '../../types';
@@ -45,6 +47,9 @@ interface UserSidebarProps {
   onOpenAdminPortal?: () => void;
   onLogout?: () => void;
   onClose: () => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
+  onOpenAiAssistant?: () => void;
 }
 
 export const UserSidebar: React.FC<UserSidebarProps> = ({
@@ -57,7 +62,10 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
   unreadEmailsCount,
   onOpenAdminPortal,
   onLogout,
-  onClose
+  onClose,
+  isMobileOpen,
+  onCloseMobile,
+  onOpenAiAssistant
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -73,6 +81,17 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
       id: 'portfolio',
       label: 'Portfolio Overview',
       icon: <Wallet className="w-4 h-4" />,
+      group: 'PORTFOLIO & TRADING'
+    },
+    {
+      id: 'markets',
+      label: 'Trade & Stock Screener',
+      icon: <TrendingUp className="w-4 h-4 text-[#6dff8a]" />,
+      badge: (
+        <span className="px-1.5 py-0.2 rounded-full bg-[#6dff8a]/20 text-[#6dff8a] font-bold text-[9px]">
+          5k+
+        </span>
+      ),
       group: 'PORTFOLIO & TRADING'
     },
     {
@@ -152,15 +171,27 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
     return acc;
   }, {} as Record<string, typeof navItems>);
 
-  return (
-    <aside className="w-64 sm:w-72 bg-[#12140c] border-r border-white/10 flex flex-col h-full select-none shrink-0">
+  const sidebarContent = (isMobile: boolean) => (
+    <div className="flex flex-col h-full select-none">
       {/* Brand & Client Header */}
       <div className="p-4 sm:p-5 border-b border-white/10">
         <div className="flex items-center justify-between">
           <TradeSharkLogo size="sm" showLtd={true} />
-          <span className="text-[9px] bg-[#6dff8a]/20 text-[#6dff8a] border border-[#6dff8a]/30 font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-            CLIENT PORTAL
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] bg-[#6dff8a]/20 text-[#6dff8a] border border-[#6dff8a]/30 font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+              CLIENT PORTAL
+            </span>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={onCloseMobile}
+                className="p-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                title="Close Drawer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* User Card */}
@@ -208,30 +239,21 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
             </span>
           </div>
         </div>
-      </div>
 
-      {/* Direct Link Info */}
-      <div className="p-3 mx-3 mt-3 rounded-xl bg-white/[0.03] border border-white/5 text-xs space-y-2">
-        <div className="flex items-center justify-between text-[11px] text-white/60">
-          <span>Direct Client Link:</span>
-          <span className="font-mono text-[#6dff8a] font-bold">/#user</span>
-        </div>
-        <button
-          onClick={handleCopyUserLink}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-semibold transition-colors"
-        >
-          {copiedLink ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-[#6dff8a]" />
-              <span className="text-[#6dff8a]">Client URL Copied!</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5 text-white/70" />
-              <span>Copy Direct Link</span>
-            </>
-          )}
-        </button>
+        {/* Shark AI Copilot Direct Button */}
+        {onOpenAiAssistant && (
+          <button
+            type="button"
+            onClick={() => { onOpenAiAssistant(); if (isMobile) onCloseMobile?.(); }}
+            className="w-full mt-2.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#6dff8a]/20 via-[#6dff8a]/10 to-transparent border border-[#6dff8a]/30 text-xs font-bold text-white flex items-center justify-between hover:border-[#6dff8a]/60 hover:bg-[#6dff8a]/25 transition-all shadow-sm"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#6dff8a] animate-pulse" />
+              <span className="text-[#6dff8a]">Ask Shark AI Copilot</span>
+            </div>
+            <span className="text-[9px] bg-[#6dff8a] text-[#15170f] font-mono px-1.5 py-0.2 rounded font-extrabold">LIVE</span>
+          </button>
+        )}
       </div>
 
       {/* Navigation Options Grouped */}
@@ -246,7 +268,7 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => onSelectTab(item.id)}
+                  onClick={() => { onSelectTab(item.id); if (isMobile) onCloseMobile?.(); }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium transition-all ${
                     isActive
                       ? 'bg-[#6dff8a]/15 text-[#6dff8a] border border-[#6dff8a]/30 font-bold shadow-sm'
@@ -271,7 +293,7 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
       <div className="p-3 border-t border-white/10 bg-[#10120a] space-y-1.5 text-xs">
         {onOpenAdminPortal && (
           <button
-            onClick={onOpenAdminPortal}
+            onClick={() => { onOpenAdminPortal(); if (isMobile) onCloseMobile?.(); }}
             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-yellow-400/20 text-white/80 hover:text-yellow-400 border border-white/10 transition-colors"
             title="Open Admin Console (/#admin)"
           >
@@ -285,7 +307,7 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
 
         {onLogout && (
           <button
-            onClick={onLogout}
+            onClick={() => { onLogout(); if (isMobile) onCloseMobile?.(); }}
             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 transition-colors"
             title="Sign out of trading account"
           >
@@ -298,7 +320,7 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
         )}
 
         <button
-          onClick={onClose}
+          onClick={() => { onClose(); if (isMobile) onCloseMobile?.(); }}
           className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/5 transition-colors"
           title="Return to Public Website"
         >
@@ -309,6 +331,30 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
           <span className="text-[10px] font-mono text-white/40">/#home</span>
         </button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 lg:w-72 bg-[#12140c] border-r border-white/10 flex-col h-full select-none shrink-0">
+        {sidebarContent(false)}
+      </aside>
+
+      {/* Mobile Slide-over Drawer */}
+      {isMobileOpen && (
+        <div 
+          className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-start animate-fadeIn"
+          onClick={onCloseMobile}
+        >
+          <div 
+            className="w-72 max-w-[85vw] bg-[#12140c] border-r border-white/15 h-full shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {sidebarContent(true)}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

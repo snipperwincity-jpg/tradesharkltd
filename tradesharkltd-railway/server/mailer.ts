@@ -9,6 +9,7 @@ export interface MailInput {
   replyTo?: string;
   cta?: { label: string; url: string };
   preheader?: string;
+  otp?: string;          // 6-digit One-Time Passcode
 }
 
 export type MailResult = { ok: boolean; provider: string; error?: string };
@@ -38,6 +39,13 @@ export const renderHtml = (m: MailInput) => {
     .split(/\n{2,}/)
     .map(p => `<p style="margin:0 0 14px;line-height:1.6;color:#d8dbd2;font-size:14px;">${p.replace(/\n/g, '<br/>')}</p>`)
     .join('');
+  const otpBox = m.otp
+    ? `<div style="margin:22px 0;padding:20px;background:#10130a;border:1px solid rgba(109,255,138,0.5);border-radius:14px;text-align:center;">
+         <div style="font-size:11px;font-weight:700;color:#a3a89e;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Your One-Time Passcode (OTP)</div>
+         <div style="font-size:36px;font-weight:900;letter-spacing:8px;color:#6dff8a;font-family:Courier,monospace;">${escapeHtml(m.otp)}</div>
+         <div style="font-size:11px;color:#868c80;margin-top:8px;">Expires in 15 minutes. Enter this code to verify your account.</div>
+       </div>`
+    : '';
   const cta = m.cta
     ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 8px;"><tr><td style="border-radius:999px;background:#6dff8a;">
          <a href="${escapeHtml(m.cta.url)}" style="display:inline-block;padding:12px 26px;font-weight:700;font-size:14px;color:#15170f;text-decoration:none;border-radius:999px;">${escapeHtml(m.cta.label)}</a>
@@ -56,6 +64,7 @@ export const renderHtml = (m: MailInput) => {
     <tr><td style="padding:28px;">
       <h1 style="margin:0 0 18px;font-size:18px;line-height:1.35;color:#ffffff;">${escapeHtml(m.subject)}</h1>
       ${paragraphs}
+      ${otpBox}
       ${cta}
     </td></tr>
     <tr><td style="padding:18px 28px;background:#11130c;border-top:1px solid #2a2e22;font-size:11px;line-height:1.6;color:#868c80;">
@@ -76,29 +85,44 @@ export async function sendMail(m: MailInput): Promise<MailResult> {
 
   const fromName = m.fromName ? `${config.mail.fromName} ${m.fromName}` : config.mail.fromName;
   const from = `${fromName} <${config.mail.fromAddress}>`;
-  const text = m.cta ? `${m.text}\n\n${m.cta.label}: ${m.cta.url}` : m.text;
+  const text = m.otp ? `${m.text}\n\nOne-Time Verification Passcode (OTP): ${m.otp} (Valid for 15 minutes)\n` : m.text;
+  const textWithCta = m.cta ? `${text}\n\n${m.cta.label}: ${m.cta.url}` : text;
   const html = renderHtml(m);
   const replyTo = m.replyTo || config.mail.replyTo;
 
   try {
     if (provider === 'resend') {
-      const res = await fetch('https://api.resend.com/emails', {
+      let res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${config.mail.resendApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to: recipients, subject: m.subject, text, html, reply_to: replyTo }),
+        body: JSON.stringify({ from, to: recipients, subject: m.subject, text: textWithCta, html, reply_to: replyTo }),
       });
       if (!res.ok) {
         const err = await res.text();
         console.error('[mail] Resend error', res.status, err);
+        // If domain is not verified on Resend, automatically fallback to official testing domain
+        if (err.includes('not verified') || err.includes('domain') || res.status === 403) {
+          console.log('[mail] Retrying with Resend onboarding domain (onboarding@resend.dev)...');
+          const fallbackFrom = `${fromName} <onboarding@resend.dev>`;
+          const retryRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${config.mail.resendApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: fallbackFrom, to: recipients, subject: m.subject, text: textWithCta, html, reply_to: replyTo }),
+          });
+          if (retryRes.ok) {
+            console.log('[mail] Successfully delivered via Resend onboarding domain!');
+            return { ok: true, provider: 'resend (onboarding fallback)' };
+          }
+        }
         return { ok: false, provider, error: `Resend ${res.status}: ${err.slice(0, 200)}` };
       }
       return { ok: true, provider };
     }
     if (provider === 'smtp') {
-      await getSmtp().sendMail({ from, to: recipients.join(', '), subject: m.subject, text, html, replyTo });
+      await getSmtp().sendMail({ from, to: recipients.join(', '), subject: m.subject, text: textWithCta, html, replyTo });
       return { ok: true, provider };
     }
-    console.log(`[mail:log] To: ${recipients.join(', ')} | Subject: ${m.subject}\n${text}\n---`);
+    console.log(`[mail:log] To: ${recipients.join(', ')} | Subject: ${m.subject}${m.otp ? ` | OTP: ${m.otp}` : ''}\n${textWithCta}\n---`);
     return { ok: true, provider };
   } catch (e: any) {
     console.error('[mail] send failed', e?.message || e);

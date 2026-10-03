@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { TradeSharkLogo } from './TradeSharkLogo';
 import { useBrokerage } from '../context/BrokerageContext';
@@ -19,9 +19,9 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { loginUser, registerUser, config } = useBrokerage();
+  const { loginUser, registerUser, verifyOtp, resendOtp, config } = useBrokerage();
 
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'otp'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,25 +30,79 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // OTP State
+  const [otpCode, setOtpCode] = useState('');
+  const [debugOtp, setDebugOtp] = useState<string | undefined>();
+  const [registeredUser, setRegisteredUser] = useState<any>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
     setIsLoading(true);
     try {
-      const user = mode === 'login'
-        ? await loginUser(email.trim(), password, rememberMe)
-        : await registerUser({ name: fullName.trim(), email: email.trim(), password });
-      setSubmitted(true);
-      setTimeout(() => {
-        onSuccess({ name: user.name, email: user.email });
-        onClose();
-      }, 600);
+      if (mode === 'login') {
+        const user = await loginUser(email.trim(), password, rememberMe);
+        setSubmitted(true);
+        setTimeout(() => {
+          onSuccess({ name: user.name, email: user.email });
+          onClose();
+        }, 600);
+      } else if (mode === 'signup') {
+        const user = await registerUser({ name: fullName.trim(), email: email.trim(), password });
+        setRegisteredUser(user);
+        setDebugOtp(user.debugOtp);
+        setMode('otp');
+        setResendCooldown(30);
+        setInfoMessage(`We've sent a 6-digit verification code to ${email.trim()}.`);
+      } else if (mode === 'otp') {
+        const user = await verifyOtp(email.trim(), otpCode.trim());
+        setSubmitted(true);
+        setTimeout(() => {
+          onSuccess({ name: user.name, email: user.email });
+          onClose();
+        }, 600);
+      }
     } catch (err) {
       setErrorMessage(errMsg(err));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || !email.trim()) return;
+    setErrorMessage(null);
+    try {
+      const r = await resendOtp(email.trim());
+      if (r.debugOtp) setDebugOtp(r.debugOtp);
+      setInfoMessage(r.message || `A new code has been sent to ${email.trim()}.`);
+      setResendCooldown(30);
+    } catch (err) {
+      setErrorMessage(errMsg(err));
+    }
+  };
+
+  const handleSkipOtp = () => {
+    if (registeredUser) {
+      setSubmitted(true);
+      setTimeout(() => {
+        onSuccess({ name: registeredUser.name, email: registeredUser.email });
+        onClose();
+      }, 400);
+    } else {
+      onClose();
     }
   };
 
@@ -130,15 +184,40 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
               {/* Header */}
               <div className="space-y-1.5">
                 <TradeSharkLogo size="sm" showLtd={true} className="mb-2" />
-                <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  {mode === 'signup' ? 'Create your TradeShark account' : 'Log in to TradeShark'}
-                </h3>
-                <p className="text-xs text-[#a3a89e]">
-                  {mode === 'signup' 
-                    ? 'Start trading stocks, crypto, and ETFs today.' 
-                    : 'Access your portfolio, live watchlists, and CopyTrader™.'}
-                </p>
+                {mode === 'otp' ? (
+                  <>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#6dff8a]/10 border border-[#6dff8a]/30 text-[#6dff8a] text-xs font-bold mb-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Security Verification</span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">
+                      Enter Verification Code
+                    </h3>
+                    <p className="text-xs text-[#a3a89e]">
+                      We sent a 6-digit One-Time Passcode (OTP) to <strong className="text-white">{email}</strong>.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">
+                      {mode === 'signup' ? 'Create your TradeShark account' : 'Log in to TradeShark'}
+                    </h3>
+                    <p className="text-xs text-[#a3a89e]">
+                      {mode === 'signup' 
+                        ? 'Start trading stocks, crypto, and ETFs today.' 
+                        : 'Access your portfolio, live watchlists, and markets.'}
+                    </p>
+                  </>
+                )}
               </div>
+
+              {/* Info Message */}
+              {infoMessage && (
+                <div className="p-3 rounded-xl bg-[#6dff8a]/15 border border-[#6dff8a]/30 text-[#6dff8a] text-xs flex items-start gap-2.5 animate-fadeIn">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{infoMessage}</span>
+                </div>
+              )}
 
               {/* Error Message */}
               {errorMessage && (
@@ -149,107 +228,170 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
               )}
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-3.5">
-                {mode === 'signup' && (
-                  <div className="space-y-1">
-                    <label className="text-xs text-white/70">Full Legal Name</label>
+              {mode === 'otp' ? (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {debugOtp && (
+                    <div 
+                      onClick={() => setOtpCode(debugOtp)}
+                      className="p-3 rounded-xl bg-[#6dff8a]/10 border border-[#6dff8a]/30 text-xs text-[#6dff8a] cursor-pointer hover:bg-[#6dff8a]/20 transition-all flex items-center justify-between"
+                    >
+                      <span>Demo Preview Code: <strong className="font-mono text-sm tracking-widest">{debugOtp}</strong></span>
+                      <span className="text-[10px] underline">Click to autofill</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-xs text-white/70 block">Enter 6-Digit Verification Code</label>
                     <input
                       type="text"
                       required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
+                      autoFocus
+                      maxLength={6}
+                      placeholder="• • • • • •"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="w-full bg-black/50 border border-white/20 focus:border-[#6dff8a] rounded-2xl py-3.5 text-center text-2xl font-mono font-extrabold tracking-[0.4em] text-[#6dff8a] focus:outline-none transition-all placeholder:text-white/20"
                     />
+                    <p className="text-[11px] text-white/40">Check your inbox and spam folder. Code is valid for 15 minutes.</p>
                   </div>
-                )}
 
-                <div className="space-y-1">
-                  <label className="text-xs text-white/70">
-                    {mode === 'signup' ? 'Email Address' : 'Email Address or Client ID'}
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      autoComplete="username"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
-                    />
-                  </div>
-                </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading || otpCode.length < 6}
+                    className="w-full py-3.5 rounded-xl bg-[#6dff8a] hover:bg-[#5ce077] text-[#15170f] font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(109,255,138,0.2)] transition-all cursor-pointer disabled:opacity-40"
+                  >
+                    {isLoading ? (
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Verify & Open Client Portal</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
 
-                <div className="space-y-1">
-                  <label className="text-xs text-white/70">Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                      minLength={mode === 'signup' ? 8 : undefined}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
-                    />
+                  <div className="flex items-center justify-between pt-2 text-xs">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
+                      disabled={resendCooldown > 0}
+                      onClick={handleResendOtp}
+                      className={`font-semibold transition-colors ${resendCooldown > 0 ? 'text-white/40 cursor-not-allowed' : 'text-[#6dff8a] hover:underline cursor-pointer'}`}
                     >
-                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSkipOtp}
+                      className="text-white/50 hover:text-white transition-colors"
+                    >
+                      Verify later &rarr;
                     </button>
                   </div>
-                </div>
-
-                {mode === 'login' && (
-                  <label className="flex items-center gap-2 text-xs text-white/60 hover:text-white/80 cursor-pointer pt-0.5 select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded bg-black/40 border-white/20 text-[#6dff8a] focus:ring-0 cursor-pointer"
-                    />
-                    <span>Keep me signed in</span>
-                  </label>
-                )}
-                {mode === 'login' && (
-                  <button type="button" onClick={() => { onClose(); navigate('/forgot-password'); }} className="text-xs text-[#6dff8a] hover:underline">
-                    Forgot password?
-                  </button>
-                )}
-
-                {mode === 'signup' && (
-                  <label className="flex items-start gap-2 text-[11px] text-[#a3a89e] cursor-pointer pt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={agreed}
-                      onChange={(e) => setAgreed(e.target.checked)}
-                      required
-                      className="accent-[#6dff8a] w-3.5 h-3.5 mt-0.5"
-                    />
-                    <span>
-                      I confirm I have read and agree to the <a href="/terms" target="_blank" className="text-[#6dff8a] underline">{config.legalName} Terms</a>, <a href="/privacy" target="_blank" className="text-[#6dff8a] underline">Privacy Policy</a> and <a href="/risk-disclosure" target="_blank" className="text-[#6dff8a] underline">Risk Disclosures</a>.
-                    </span>
-                  </label>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 rounded-xl bg-[#6dff8a] hover:bg-[#5ce077] text-[#15170f] font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(109,255,138,0.2)] transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <span>{mode === 'signup' ? 'Create Account' : 'Log In to Account'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-3.5">
+                  {mode === 'signup' && (
+                    <div className="space-y-1">
+                      <label className="text-xs text-white/70">Full Legal Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
+                      />
+                    </div>
                   )}
-                </button>
-              </form>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-white/70">
+                      {mode === 'signup' ? 'Email Address' : 'Email Address or Client ID'}
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        autoComplete="username"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-white/70">Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                        minLength={mode === 'signup' ? 8 : undefined}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#6dff8a]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
+                      >
+                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {mode === 'login' && (
+                    <label className="flex items-center gap-2 text-xs text-white/60 hover:text-white/80 cursor-pointer pt-0.5 select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="rounded bg-black/40 border-white/20 text-[#6dff8a] focus:ring-0 cursor-pointer"
+                      />
+                      <span>Keep me signed in</span>
+                    </label>
+                  )}
+                  {mode === 'login' && (
+                    <button type="button" onClick={() => { onClose(); navigate('/forgot-password'); }} className="text-xs text-[#6dff8a] hover:underline">
+                      Forgot password?
+                    </button>
+                  )}
+
+                  {mode === 'signup' && (
+                    <label className="flex items-start gap-2 text-[11px] text-[#a3a89e] cursor-pointer pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={agreed}
+                        onChange={(e) => setAgreed(e.target.checked)}
+                        required
+                        className="accent-[#6dff8a] w-3.5 h-3.5 mt-0.5"
+                      />
+                      <span>
+                        I confirm I have read and agree to the <a href="/terms" target="_blank" className="text-[#6dff8a] underline">{config.legalName} Terms</a>, <a href="/privacy" target="_blank" className="text-[#6dff8a] underline">Privacy Policy</a> and <a href="/risk-disclosure" target="_blank" className="text-[#6dff8a] underline">Risk Disclosures</a>.
+                      </span>
+                    </label>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 rounded-xl bg-[#6dff8a] hover:bg-[#5ce077] text-[#15170f] font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(109,255,138,0.2)] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>{mode === 'signup' ? 'Create Account' : 'Log In to Account'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
 
               {/* Toggle login / signup */}
               <div className="text-center text-xs text-[#a3a89e] pt-1">
@@ -264,7 +406,7 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
                       Log in
                     </button>
                   </span>
-                ) : (
+                ) : mode === 'login' ? (
                   <span>
                     Don't have an account yet?{' '}
                     <button
@@ -273,6 +415,17 @@ const AuthModalInner: React.FC<AuthModalProps> = ({
                       className="text-[#6dff8a] font-semibold hover:underline"
                     >
                       Start Investing
+                    </button>
+                  </span>
+                ) : (
+                  <span>
+                    Need to change email?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setMode('signup')}
+                      className="text-[#6dff8a] font-semibold hover:underline"
+                    >
+                      Back to sign up
                     </button>
                   </span>
                 )}

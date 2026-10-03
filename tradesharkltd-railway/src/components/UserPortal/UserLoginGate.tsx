@@ -38,9 +38,9 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
   onLoginSuccess,
   onClose
 }) => {
-  const { loginUser, registerUser, config } = useBrokerage();
+  const { loginUser, registerUser, verifyOtp, resendOtp, config } = useBrokerage();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'otp'>('login');
   
   // Login Fields
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -56,9 +56,23 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
   const [regCountry, setRegCountry] = useState('');
   const [regAgreed, setRegAgreed] = useState(false);
 
+  // OTP Fields
+  const [otpCode, setOtpCode] = useState('');
+  const [debugOtp, setDebugOtp] = useState<string | undefined>();
+  const [registeredUser, setRegisteredUser] = useState<UserAccount | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
   // Status & Feedback
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const toSession = (user: UserAccount, remember: boolean): UserSession => ({
     userId: user.id,
@@ -72,6 +86,7 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
     setIsLoading(true);
     try {
       const user = await loginUser(loginIdentifier.trim(), loginPassword, rememberMe);
@@ -86,14 +101,53 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
     setIsLoading(true);
     try {
       const user = await registerUser({ name: regName.trim(), email: regEmail.trim(), password: regPassword, phone: regPhone.trim(), country: regCountry });
+      setRegisteredUser(user);
+      setDebugOtp(user.debugOtp);
+      setMode('otp');
+      setResendCooldown(30);
+      setInfoMessage(`We've dispatched a 6-digit OTP code to ${regEmail.trim()}.`);
+    } catch (err) {
+      setErrorMessage(errMsg(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setIsLoading(true);
+    try {
+      const user = await verifyOtp(regEmail.trim(), otpCode.trim());
       onLoginSuccess(toSession(user, true), user);
     } catch (err) {
       setErrorMessage(errMsg(err));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || !regEmail.trim()) return;
+    setErrorMessage(null);
+    try {
+      const r = await resendOtp(regEmail.trim());
+      if (r.debugOtp) setDebugOtp(r.debugOtp);
+      setInfoMessage(r.message || `A new code has been sent to ${regEmail.trim()}.`);
+      setResendCooldown(30);
+    } catch (err) {
+      setErrorMessage(errMsg(err));
+    }
+  };
+
+  const handleSkipOtp = () => {
+    if (registeredUser) {
+      onLoginSuccess(toSession(registeredUser, true), registeredUser);
     }
   };
 
@@ -169,32 +223,42 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
         </div>
 
         {/* Mode Switcher Tabs */}
-        <div className="flex p-1 bg-black/50 border border-white/10 rounded-xl mb-4">
-          <button
-            type="button"
-            onClick={() => { setMode('login'); setErrorMessage(null); }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-              mode === 'login' 
-                ? 'bg-[#6dff8a] text-[#15170f] shadow-sm' 
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Sign In</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode('register'); setErrorMessage(null); }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-              mode === 'register' 
-                ? 'bg-[#6dff8a] text-[#15170f] shadow-sm' 
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Create Account</span>
-          </button>
-        </div>
+        {mode !== 'otp' && (
+          <div className="flex p-1 bg-black/50 border border-white/10 rounded-xl mb-4">
+            <button
+              type="button"
+              onClick={() => { setMode('login'); setErrorMessage(null); setInfoMessage(null); }}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                mode === 'login' 
+                  ? 'bg-[#6dff8a] text-[#15170f] shadow-sm' 
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('register'); setErrorMessage(null); setInfoMessage(null); }}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                mode === 'register' 
+                  ? 'bg-[#6dff8a] text-[#15170f] shadow-sm' 
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Create Account</span>
+            </button>
+          </div>
+        )}
+
+        {/* Info Notification */}
+        {infoMessage && (
+          <div className="mb-4 p-3 rounded-xl bg-[#6dff8a]/15 border border-[#6dff8a]/30 text-[#6dff8a] text-xs flex items-start gap-2.5 animate-fadeIn">
+            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{infoMessage}</span>
+          </div>
+        )}
 
         {/* Error Notification */}
         {errorMessage && (
@@ -204,8 +268,69 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
           </div>
         )}
 
-        {/* Mode 1: LOGIN FORM */}
-        {mode === 'login' ? (
+        {/* Mode: OTP FORM */}
+        {mode === 'otp' ? (
+          <form onSubmit={handleOtpSubmit} className="space-y-4 animate-fadeIn">
+            {debugOtp && (
+              <div 
+                onClick={() => setOtpCode(debugOtp)}
+                className="p-3 rounded-xl bg-[#6dff8a]/10 border border-[#6dff8a]/30 text-xs text-[#6dff8a] cursor-pointer hover:bg-[#6dff8a]/20 transition-all flex items-center justify-between"
+              >
+                <span>Demo / Dev Passcode: <strong className="font-mono text-sm tracking-widest">{debugOtp}</strong></span>
+                <span className="text-[10px] underline">Click to autofill</span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-xs text-white/70 block">Enter 6-Digit Passcode (OTP)</label>
+              <input
+                type="text"
+                required
+                autoFocus
+                maxLength={6}
+                placeholder="• • • • • •"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full bg-[#181c10] border border-white/20 focus:border-[#6dff8a] rounded-2xl py-3.5 text-center text-2xl font-mono font-extrabold tracking-[0.4em] text-[#6dff8a] focus:outline-none transition-all placeholder:text-white/20"
+              />
+              <p className="text-[11px] text-white/40">Check your email inbox or spam folder. Valid for 15 minutes.</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || otpCode.length < 6}
+              className="w-full mt-2 py-3.5 rounded-xl bg-[#6dff8a] hover:bg-[#5ce077] text-[#15170f] font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(109,255,138,0.2)] transition-all cursor-pointer disabled:opacity-40"
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>Verify Email & Open Portal</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between pt-2 text-xs">
+              <button
+                type="button"
+                disabled={resendCooldown > 0}
+                onClick={handleResendOtp}
+                className={`font-semibold transition-colors ${resendCooldown > 0 ? 'text-white/40 cursor-not-allowed' : 'text-[#6dff8a] hover:underline cursor-pointer'}`}
+              >
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSkipOtp}
+                className="text-white/50 hover:text-white transition-colors"
+              >
+                Skip for now &rarr;
+              </button>
+            </div>
+          </form>
+        ) : mode === 'login' ? (
           <form onSubmit={handleLoginSubmit} className="space-y-3.5">
             <div>
               <label className="text-xs text-white/70 block mb-1">
@@ -241,7 +366,7 @@ export const UserLoginGate: React.FC<UserLoginGateProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   Wallet, 
@@ -24,7 +24,10 @@ import {
   Copy,
   Check,
   ShieldAlert,
-  LogOut
+  LogOut,
+  Search,
+  BarChart3,
+  Zap
 } from 'lucide-react';
 import { TradeSharkLogo } from './TradeSharkLogo';
 import { useBrokerage } from '../context/BrokerageContext';
@@ -95,6 +98,7 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
   React.useEffect(() => { if (initialTab && TAB_IDS.includes(initialTab as UserTab)) setActiveTab(initialTab as UserTab); }, [initialTab]);
   const [accountType, setAccountType] = useState<'real' | 'virtual'>('real');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Deposit form state
   const [depositAmount, setDepositAmount] = useState(String(Math.max(config.minDeposit, 1000)));
@@ -188,7 +192,7 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
         {/* Dedicated Sidebar for All Options */}
         <UserSidebar
           activeTab={activeTab}
-          onSelectTab={setActiveTab}
+          onSelectTab={(tab) => { setActiveTab(tab); setIsMobileSidebarOpen(false); }}
           currentUser={currentUser}
           accountType={accountType}
           onToggleAccountType={setAccountType}
@@ -197,13 +201,25 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
           onOpenAdminPortal={onOpenAdminPortal}
           onLogout={handleLogout}
           onClose={onClose}
+          isMobileOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
 
         {/* Right Main Body Content */}
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#15170f]">
           {/* Header Bar */}
-          <div className="p-4 sm:p-5 border-b border-white/10 bg-[#171a10] flex items-center justify-between">
-            <div>
+          <div className="p-3 sm:p-5 border-b border-white/10 bg-[#171a10] flex items-center justify-between gap-2">
+            {/* Mobile sidebar toggle */}
+            <button
+              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors shrink-0"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-white">
                   {tabTitles[activeTab]?.title || 'Client Portal'}
@@ -458,10 +474,10 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
                   <Layers className="w-10 h-10 mx-auto text-white/30" />
                   <p className="text-sm">No open positions currently active for this account.</p>
                   <button
-                    onClick={() => onOpenTrade('BTC')}
+                    onClick={() => setActiveTab('markets')}
                     className="px-4 py-2 rounded-full bg-[#6dff8a] text-[#15170f] font-bold text-xs"
                   >
-                    Explore Markets
+                    Browse &amp; Trade Markets
                   </button>
                 </div>
               ) : (
@@ -513,6 +529,11 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB: LIVE MARKETS SCREENER */}
+          {activeTab === 'markets' && (
+            <MarketsTab onOpenTrade={onOpenTrade} allowTrading={currentUser.allowTrading} />
           )}
 
           {/* TAB 3: DEPOSIT */}
@@ -998,6 +1019,227 @@ const SecurityPanel: React.FC<{
         </div>
         <button onClick={() => run(resetPractice, 'Practice balance reset')} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs">Reset virtual balance</button>
       </div>
+    </div>
+  );
+};
+
+// ------------------------------------------------------------------
+// MarketsTab — Live instruments browser with trade buttons
+// ------------------------------------------------------------------
+const CATEGORIES = ['All', 'Stocks', 'Crypto', 'ETFs', 'Commodities', 'Currencies', 'Indices'];
+
+const MarketsTab: React.FC<{ onOpenTrade: (symbol: string) => void; allowTrading: boolean }> = ({ onOpenTrade, allowTrading }) => {
+  const { instruments } = useBrokerage();
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+
+  const filtered = useMemo(() => {
+    return instruments.filter(inst => {
+      const matchCat = category === 'All' || inst.category?.toLowerCase() === category.toLowerCase();
+      const q = search.toLowerCase();
+      const matchQ = !q || inst.symbol.toLowerCase().includes(q) || inst.name.toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+  }, [instruments, search, category]);
+
+  const categoryColors: Record<string, string> = {
+    Stocks: 'bg-blue-500/20 text-blue-400',
+    Crypto: 'bg-orange-500/20 text-orange-400',
+    ETFs: 'bg-purple-500/20 text-purple-400',
+    Commodities: 'bg-yellow-500/20 text-yellow-400',
+    Currencies: 'bg-teal-500/20 text-teal-400',
+    Indices: 'bg-pink-500/20 text-pink-400',
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <div>
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-[#6dff8a]" />
+            Live Markets Screener
+          </h3>
+          <p className="text-xs text-[#a3a89e]">{instruments.length}+ instruments available — click Trade to open a position</p>
+        </div>
+        {!allowTrading && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Trading Restricted
+          </div>
+        )}
+      </div>
+
+      {/* Search + Category Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by symbol or name (e.g. AAPL, Bitcoin...)"
+            className="w-full bg-black/40 border border-white/15 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#6dff8a] placeholder:text-white/30"
+          />
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setCategory(cat)}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+              category === cat
+                ? 'bg-[#6dff8a] text-[#15170f]'
+                : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Instruments Grid */}
+      {filtered.length === 0 ? (
+        <div className="py-16 text-center text-white/40 space-y-2">
+          <Search className="w-10 h-10 mx-auto opacity-30" />
+          <p className="text-sm">No instruments found for "{search}"</p>
+          <button onClick={() => { setSearch(''); setCategory('All'); }} className="text-xs text-[#6dff8a] hover:underline">Clear filters</button>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Cards */}
+          <div className="grid grid-cols-1 gap-3 sm:hidden">
+            {filtered.slice(0, 40).map(inst => {
+              const isUp = (inst.change1d || 0) >= 0;
+              return (
+                <div key={inst.symbol} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#6dff8a]/30 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xs text-white shrink-0">
+                      {inst.symbol.slice(0, 3)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-white text-sm">{inst.symbol}</span>
+                        {inst.category && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${categoryColors[inst.category] || 'bg-white/10 text-white/60'}`}>
+                            {inst.category}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-white/50 truncate block max-w-[160px]">{inst.name}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-white font-mono text-sm">
+                      ${inst.price ? inst.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                    </div>
+                    {inst.change1d !== undefined && (
+                      <div className={`text-xs font-bold ${isUp ? 'text-[#6dff8a]' : 'text-[#ff5c5c]'}`}>
+                        {isUp ? '▲' : '▼'} {Math.abs(inst.change1d).toFixed(2)}%
+                      </div>
+                    )}
+                    <button
+                      disabled={!allowTrading}
+                      onClick={() => onOpenTrade(inst.symbol)}
+                      className={`mt-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        allowTrading
+                          ? 'bg-[#6dff8a] text-[#15170f] hover:bg-[#5ce077]'
+                          : 'bg-white/10 text-white/30 cursor-not-allowed'
+                      }`}
+                    >
+                      Trade
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden sm:block border border-white/10 rounded-2xl overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#1a1d13] text-white/50 uppercase border-b border-white/10 font-mono text-[10px]">
+                <tr>
+                  <th className="p-3.5">Asset</th>
+                  <th className="p-3.5">Category</th>
+                  <th className="p-3.5">Price</th>
+                  <th className="p-3.5">24h Change</th>
+                  <th className="p-3.5">Spread</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10 bg-black/20">
+                {filtered.slice(0, 60).map(inst => {
+                  const isUp = (inst.change1d || 0) >= 0;
+                  const halted = inst.halted || inst.status === 'Halted';
+                  return (
+                    <tr key={inst.symbol} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-[11px] text-white shrink-0">
+                            {inst.symbol.slice(0, 3)}
+                          </div>
+                          <div>
+                            <div className="font-bold text-white">{inst.symbol}</div>
+                            <div className="text-white/40 truncate max-w-[140px]">{inst.name}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3.5">
+                        {inst.category && (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${categoryColors[inst.category] || 'bg-white/10 text-white/60'}`}>
+                            {inst.category}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3.5 font-mono font-bold text-white">
+                        ${inst.price ? inst.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                      </td>
+                      <td className="p-3.5">
+                        {inst.change1d !== undefined ? (
+                          <span className={`flex items-center gap-1 font-bold ${isUp ? 'text-[#6dff8a]' : 'text-[#ff5c5c]'}`}>
+                            {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            {isUp ? '+' : ''}{inst.change1d.toFixed(2)}%
+                          </span>
+                        ) : <span className="text-white/30">—</span>}
+                      </td>
+                      <td className="p-3.5 text-white/60 font-mono">{inst.spread || '—'}</td>
+                      <td className="p-3.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${halted ? 'bg-red-500/20 text-red-400' : 'bg-[#6dff8a]/20 text-[#6dff8a]'}`}>
+                          {halted ? 'Halted' : 'Live'}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <button
+                          disabled={!allowTrading || halted}
+                          onClick={() => onOpenTrade(inst.symbol)}
+                          className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            allowTrading && !halted
+                              ? 'bg-[#6dff8a] text-[#15170f] hover:bg-[#5ce077] shadow-[0_0_10px_rgba(109,255,138,0.2)]'
+                              : 'bg-white/10 text-white/30 cursor-not-allowed'
+                          }`}
+                        >
+                          <Zap className="w-3 h-3" />
+                          Trade Now
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filtered.length > 60 && (
+              <div className="p-4 text-center text-xs text-white/40 border-t border-white/10">
+                Showing 60 of {filtered.length} instruments. Use the search bar to find specific assets.
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
