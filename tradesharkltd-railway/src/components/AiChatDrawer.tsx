@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, Sparkles, User, TrendingUp, DollarSign, ShieldCheck, BarChart3, Zap, RefreshCw } from 'lucide-react';
+import React, { useState, useRef, useEffect, Component, ErrorInfo, ReactNode } from 'react';
+import { X, Send, Bot, Sparkles, User, TrendingUp, DollarSign, ShieldCheck, BarChart3, Zap, RefreshCw, AlertCircle } from 'lucide-react';
 import { useBrokerage } from '../context/BrokerageContext';
 import { api } from '../lib/api';
 
@@ -27,26 +27,85 @@ const QUICK_ACTIONS = [
   { icon: <Sparkles className="w-3.5 h-3.5" />, label: 'How to deposit', q: 'How do I deposit funds into my TradeShark account? What methods are available?' },
 ];
 
-export const AiChatDrawer: React.FC<AiChatDrawerProps> = (props) => (props.isOpen ? <AiChatDrawerInner {...props} /> : null);
+class AiChatErrorBoundary extends Component<{ children: ReactNode; onClose: () => void }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode; onClose: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Shark AI Assistant error caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#171a10] border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 mx-auto flex items-center justify-center">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-white">Shark AI™ Restart Required</h3>
+            <p className="text-xs text-[#a3a89e]">
+              A temporary display error occurred while rendering the copilot. Click below to reload the assistant.
+            </p>
+            <div className="flex gap-2 justify-center pt-2">
+              <button
+                onClick={() => this.setState({ hasError: false })}
+                className="px-4 py-2 rounded-xl bg-[#6dff8a] text-[#15170f] font-bold text-xs hover:bg-[#5ce077] transition-all"
+              >
+                Reload Assistant
+              </button>
+              <button
+                onClick={this.props.onClose}
+                className="px-4 py-2 rounded-xl bg-white/10 text-white font-bold text-xs hover:bg-white/20 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export const AiChatDrawer: React.FC<AiChatDrawerProps> = (props) => {
+  if (!props.isOpen) return null;
+  return (
+    <AiChatErrorBoundary onClose={props.onClose}>
+      <AiChatDrawerInner {...props} />
+    </AiChatErrorBoundary>
+  );
+};
 
 const AiChatDrawerInner: React.FC<AiChatDrawerProps> = ({ onClose, onOpenTrade }) => {
-  const { config, currentUser, instruments, positions } = useBrokerage();
+  const { config, currentUser, positions } = useBrokerage();
 
   const getWelcome = () => {
-    const name = currentUser ? ` ${currentUser.name.split(' ')[0]}` : '';
-    const portfolioNote = currentUser && positions?.length
-      ? ` You currently have ${positions.filter(p => p.userId === currentUser.id).length} open position(s).`
+    const firstName = currentUser?.name ? ` ${currentUser.name.trim().split(' ')[0]}` : '';
+    const userPositions = Array.isArray(positions) && currentUser?.id
+      ? positions.filter(p => p.userId === currentUser.id)
+      : [];
+    const portfolioNote = userPositions.length
+      ? ` You currently have ${userPositions.length} active position(s).`
       : '';
-    return `Hello${name}! I'm **Shark AI™**, your intelligent financial copilot at ${config.appName}.${portfolioNote}\n\nI can help you with:\n• **Market analysis** — stocks, crypto, ETFs, commodities\n• **Trading strategies** — entry/exit, risk management, position sizing\n• **Account help** — deposits, withdrawals, KYC verification\n• **Portfolio insights** — allocation, diversification, rebalancing\n\nAsk me anything — I'm powered by real-time AI and updated market data.`;
+    const brandName = config?.appName || 'TradeShark';
+    return `Hello${firstName}! I'm **Shark AI™**, your institutional trading copilot at ${brandName}.${portfolioNote}\n\nI can help you with:\n• **Market analysis** — real-time insight on stocks, crypto, ETFs & commodities\n• **Trading strategies** — entry/exit timing, stop-loss & risk management\n• **Account help** — instant deposits, withdrawals, and KYC verification\n• **Portfolio review** — allocation balance and position sizing\n\nAsk me anything or choose a quick topic below.`;
   };
 
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
-      id: '1',
+      id: 'welcome-1',
       sender: 'ai',
       text: getWelcome(),
-      time: 'Just now'
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -58,38 +117,16 @@ const AiChatDrawerInner: React.FC<AiChatDrawerProps> = ({ onClose, onOpenTrade }
   }, [messages, isTyping]);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 200);
+    const timer = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => clearTimeout(timer);
   }, []);
-
-  const buildSystemContext = useCallback(() => {
-    const topInstruments = instruments.slice(0, 10).map(i => `${i.symbol} (${i.name}) @ $${i.price?.toFixed(2) || 'N/A'}`).join(', ');
-    const userContext = currentUser
-      ? `The user is logged in as ${currentUser.name}. Real balance: $${currentUser.realBalance?.toLocaleString()}. KYC: ${currentUser.kycStatus}. Tier: ${currentUser.tier}.`
-      : 'The user is not logged in.';
-    return `You are Shark AI™, the intelligent financial copilot for ${config.appName} (${config.legalName}). You are an expert in global financial markets, trading strategies, portfolio management, and the TradeShark platform.
-
-${userContext}
-
-Platform context: ${config.appName} offers trading in stocks, crypto, ETFs, commodities, currencies, and indices. Key features: 5,000+ instruments, zero commission, CopyTrader™, Shark AI™, KYC verification, instant deposits/withdrawals.
-
-Top instruments available: ${topInstruments}.
-
-Support email: ${config.supportEmail}.
-
-Rules:
-- Be concise, insightful, and data-driven. 
-- For trading questions, always mention risk management.
-- If the user asks to trade a specific symbol, include it as JSON at the end: {"symbol":"AAPL"}.
-- Never give illegal financial advice. Always add appropriate disclaimers.
-- Respond naturally and helpfully, not like a chatbot.`;
-  }, [config, currentUser, instruments, positions]);
 
   const handleSend = async (textToSend?: string) => {
     const userText = (textToSend || input).trim();
-    if (!userText) return;
+    if (!userText || isTyping) return;
 
     const newMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: `u-${Date.now()}`,
       sender: 'user',
       text: userText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -110,9 +147,9 @@ Rules:
       setMessages(prev => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: `ai-${Date.now()}`,
           sender: 'ai',
-          text: r.reply || 'I couldn\'t generate a response. Please try again.',
+          text: r.reply || "I couldn't generate a response. Please try asking again.",
           actionSymbol: r.symbol || undefined,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
@@ -120,11 +157,11 @@ Rules:
     } catch (err: any) {
       const errText = err?.message?.includes('Too many')
         ? err.message
-        : 'Sorry, I couldn\'t reach the AI service right now. Please try again in a moment.';
+        : "Sorry, I couldn't reach the AI service right now. Please try again in a moment.";
       setMessages(prev => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: `err-${Date.now()}`,
           sender: 'ai',
           text: errText,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -145,34 +182,53 @@ Rules:
 
   const clearChat = () => {
     setMessages([{
-      id: Date.now().toString(),
+      id: `welcome-${Date.now()}`,
       sender: 'ai',
       text: getWelcome(),
-      time: 'Just now'
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }]);
   };
 
-  // Simple markdown-like renderer
+  // Safe markdown-like parser
   const renderText = (text: string) => {
     const lines = text.split('\n');
     return lines.map((line, i) => {
-      // Bold
-      line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      // Bullet
+      // Escape HTML entities to prevent injection
+      const sanitized = line
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // Format bold markdown
+      const formatted = sanitized.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
+
       if (line.startsWith('• ') || line.startsWith('- ')) {
-        return <div key={i} className="flex items-start gap-1.5 mt-1"><span className="text-[#6dff8a] mt-0.5 shrink-0">•</span><span dangerouslySetInnerHTML={{ __html: line.replace(/^[•\-]\s*/, '') }} /></div>;
+        const bulletContent = formatted.replace(/^[•\-]\s*/, '');
+        return (
+          <div key={i} className="flex items-start gap-2 mt-1.5 first:mt-0">
+            <span className="text-[#6dff8a] mt-0.5 shrink-0 font-bold">•</span>
+            <span dangerouslySetInnerHTML={{ __html: bulletContent }} />
+          </div>
+        );
       }
-      return line ? <p key={i} className="mt-1 first:mt-0" dangerouslySetInnerHTML={{ __html: line }} /> : <div key={i} className="h-1" />;
+
+      if (!line.trim()) {
+        return <div key={i} className="h-1.5" />;
+      }
+
+      return (
+        <p key={i} className="mt-1 first:mt-0" dangerouslySetInnerHTML={{ __html: formatted }} />
+      );
     });
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-stretch justify-end bg-black/70 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-[70] flex items-stretch justify-end bg-black/75 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg h-full bg-[#161910] border-l border-white/15 flex flex-col shadow-2xl animate-slideLeft"
+        className="w-full max-w-lg h-full bg-[#161910] border-l border-white/15 flex flex-col shadow-2xl animate-slideLeft text-left"
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: 'min(520px, 100vw)' }}
       >
@@ -188,7 +244,7 @@ Rules:
                 <span className="font-bold text-white text-sm sm:text-base">Shark AI™ Copilot</span>
                 <span className="text-[10px] bg-[#6dff8a] text-[#15170f] font-extrabold px-1.5 py-0.5 rounded">LIVE</span>
               </div>
-              <p className="text-[11px] text-[#a3a89e]">Real-time market AI · Portfolio assistant · 24/7</p>
+              <p className="text-[11px] text-[#a3a89e]">Real-time market intelligence · Portfolio assistant · 24/7</p>
             </div>
           </div>
 
@@ -197,12 +253,15 @@ Rules:
               onClick={clearChat}
               className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors"
               title="Clear conversation"
+              aria-label="Clear conversation"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
               className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+              title="Close assistant"
+              aria-label="Close assistant"
             >
               <X className="w-5 h-5" />
             </button>
@@ -215,6 +274,7 @@ Rules:
             {QUICK_ACTIONS.map((qa, idx) => (
               <button
                 key={idx}
+                type="button"
                 onClick={() => handleSend(qa.q)}
                 className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full bg-white/5 hover:bg-[#6dff8a]/20 hover:text-[#6dff8a] border border-white/10 hover:border-[#6dff8a]/40 text-white/70 whitespace-nowrap transition-all"
               >
@@ -240,8 +300,8 @@ Rules:
                   m.sender === 'user'
                     ? 'bg-[#6dff8a] text-[#15170f] font-medium rounded-tr-sm'
                     : m.isError
-                    ? 'bg-red-950/50 text-red-300 border border-red-500/20 rounded-tl-sm'
-                    : 'bg-[#1e2217] text-[#e8eae3] border border-white/8 rounded-tl-sm'
+                    ? 'bg-red-950/60 text-red-200 border border-red-500/30 rounded-tl-sm'
+                    : 'bg-[#1e2217] text-[#e8eae3] border border-white/10 rounded-tl-sm'
                 }`}
               >
                 <div className="space-y-0.5">
@@ -249,11 +309,17 @@ Rules:
                 </div>
 
                 {m.actionSymbol && (
-                  <div className="mt-3 pt-3 border-t border-white/15 flex items-center justify-between">
-                    <span className="text-[11px] text-white/50">Open trade for <strong className="text-white">{m.actionSymbol}</strong></span>
+                  <div className="mt-3 pt-3 border-t border-white/15 flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-white/60">
+                      Open trade ticket for <strong className="text-white font-mono">{m.actionSymbol}</strong>
+                    </span>
                     <button
-                      onClick={() => onOpenTrade(m.actionSymbol!)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6dff8a] text-[#15170f] font-bold text-xs hover:bg-[#5ce077] transition-all shadow-[0_0_8px_rgba(109,255,138,0.3)]"
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenTrade(m.actionSymbol!);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6dff8a] text-[#15170f] font-bold text-xs hover:bg-[#5ce077] transition-all shadow-[0_0_8px_rgba(109,255,138,0.3)] shrink-0"
                     >
                       <Zap className="w-3 h-3" />
                       Trade {m.actionSymbol}
@@ -280,7 +346,7 @@ Rules:
                 <span className="w-2 h-2 rounded-full bg-[#6dff8a] animate-bounce" />
                 <span className="w-2 h-2 rounded-full bg-[#6dff8a] animate-bounce [animation-delay:0.15s]" />
                 <span className="w-2 h-2 rounded-full bg-[#6dff8a] animate-bounce [animation-delay:0.3s]" />
-                <span className="text-[11px] text-white/40 ml-1">Shark AI is analyzing...</span>
+                <span className="text-[11px] text-white/50 ml-1.5">Shark AI is analyzing...</span>
               </div>
             </div>
           )}
@@ -297,7 +363,7 @@ Rules:
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about markets, strategies, your portfolio..."
+              placeholder="Ask about markets, stocks, crypto, strategies..."
               className="flex-1 bg-transparent px-2 py-1.5 text-xs sm:text-sm text-white focus:outline-none placeholder:text-white/30"
             />
             <button
@@ -305,12 +371,13 @@ Rules:
               onClick={() => handleSend()}
               disabled={!input.trim() || isTyping}
               className="p-2.5 rounded-xl bg-[#6dff8a] text-[#15170f] hover:bg-[#5ce077] disabled:opacity-40 disabled:pointer-events-none transition-all shadow-[0_0_10px_rgba(109,255,138,0.2)] shrink-0"
+              aria-label="Send message"
             >
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-[10px] text-white/30 text-center mt-2">
-            Shark AI™ is for informational purposes only. Not financial advice. Trading involves risk.
+          <p className="text-[10px] text-white/40 text-center mt-2">
+            Shark AI™ is for informational analysis only. Not financial advice. Capital at risk.
           </p>
         </div>
       </div>

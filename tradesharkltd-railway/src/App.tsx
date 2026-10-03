@@ -90,6 +90,12 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (path === '/shark-ai') {
+      setIsAiChatOpen(true);
+    }
+  }, [path]);
+
   const openUserDashboard = (tab?: string) => {
     returnPath.current = lastContentPath.current;
     navigate(`/dashboard${tab ? `?tab=${tab}` : ''}`);
@@ -239,6 +245,7 @@ export default function App() {
           onClose={closePortal}
           initialTab={loc.search.get('tab') || undefined}
           onOpenTrade={handleOpenTradeForSymbol}
+          onOpenAiAssistant={() => setIsAiChatOpen(true)}
         />
       )}
 

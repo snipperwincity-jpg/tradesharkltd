@@ -44,6 +44,7 @@ interface UserDashboardModalProps {
   initialTab?: string;
   onOpenTrade: (symbol: string) => void;
   onOpenAdminPortal?: () => void;
+  onOpenAiAssistant?: () => void;
 }
 
 const TAB_IDS: UserTab[] = ['portfolio', 'positions', 'markets', 'deposit', 'withdraw', 'kyc', 'inbox', 'copy', 'history', 'settings'];
@@ -203,6 +204,7 @@ const UserDashboardInner: React.FC<UserDashboardModalProps> = ({
           onClose={onClose}
           isMobileOpen={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          onOpenAiAssistant={props.onOpenAiAssistant}
         />
 
         {/* Right Main Body Content */}
